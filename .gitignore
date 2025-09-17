@@ -1,42 +1,222 @@
-out
-dist
-node_modules
-.vscode-test/
-.vsix
-.env
-*.log
+# Markdown Translator VS Code Extension - .gitignore
 
-# IDE
+# ====================================
+# Node.js 相关
+# ====================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnp.*
+.yarn/
+
+# ====================================
+# TypeScript 编译输出
+# ====================================
+out/
+dist/
+build/
+*.js.map
+
+# ====================================
+# VS Code 扩展相关
+# ====================================
+# 扩展打包文件
+*.vsix
+
+# VS Code 工作区设置
 .vscode/settings.json
-.idea/
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/tasks.json
 
-# OS
-.DS_Store
+# 保留默认配置文件，但忽略个人设置
+!.vscode/settings.default.json
+!.vscode/launch.default.json
+
+# ====================================
+# 操作系统相关
+# ====================================
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
-# Runtime data
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.nfs*
+
+# ====================================
+# IDE 和编辑器
+# ====================================
+# WebStorm/IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ====================================
+# 日志和临时文件
+# ====================================
+logs/
+*.log
+pids/
 *.pid
 *.seed
-*.log
+*.pid.lock
 
-# Coverage directory used by tools like istanbul
-coverage
+# 临时文件
+tmp/
+temp/
+.tmp/
+.temp/
 
-# Dependency directories
-node_modules/
-bower_components/
+# ====================================
+# 测试相关
+# ====================================
+# 测试覆盖率报告
+coverage/
+.nyc_output/
+.coverage
+*.lcov
 
-# Optional npm cache directory
+# 测试结果
+test-results/
+.test/
+
+# ====================================
+# 环境变量和配置
+# ====================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# API密钥和敏感信息文件
+secrets.json
+config.local.json
+.secrets
+
+# ====================================
+# 缓存文件
+# ====================================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# ====================================
+# 依赖相关
+# ====================================
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# npm
 .npm
 
-# Optional REPL history
-.node_repl_history
+# ====================================
+# 开发工具
+# ====================================
+# TypeScript
+*.tsbuildinfo
 
-# Output of 'npm pack'
+# ESLint
+.eslintcache
+
+# Prettier
+.prettier-cache
+
+# ====================================
+# 构建和部署
+# ====================================
+# 打包文件
 *.tgz
+*.tar.gz
 
-# Yarn Integrity file
-.yarn-integrity
+# 发布相关
+publish/
+release/
 
-# dotenv environment variables file
-.env
+# ====================================
+# 文档生成
+# ====================================
+docs-dist/
+typedoc/
+
+# ====================================
+# 备份文件
+# ====================================
+*.bak
+*.backup
+*.orig
+*.tmp
+
+# ====================================
+# 本项目特定忽略
+# ====================================
+# 翻译测试文件
+test-sample-*.md
+translation-test/
+
+# 本地开发配置
+.vscode/settings.local.json
+
+# 性能分析文件
+*.cpuprofile
+*.heapprofile
+
+# 调试文件
+debug.log
+*.debug
+
+# ====================================
+# 可选：取消忽略某些文件
+# ====================================
+# 如果需要提交某些通常被忽略的文件，可以使用 !filename 语法
+# 例如：
+# !important-config.js
+
+# ====================================
+# 结束
+# ====================================
