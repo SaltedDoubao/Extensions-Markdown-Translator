@@ -1,178 +1,287 @@
+export interface ExtractResult {
+    translatableLines: string[];
+    placeholderMap: Map<string, string>;
+    lineStructure: LineInfo[];
+}
+
+export interface LineInfo {
+    originalLine: string;
+    type: 'empty' | 'placeholder_only' | 'header' | 'list' | 'quote' | 'normal';
+    prefix?: string;
+    content?: string;
+}
+
 export class MarkdownProcessor {
     private codeBlockPattern = /```[\s\S]*?```/g;
     private inlineCodePattern = /`[^`]*?`/g;
     private linkPattern = /\[([^\]]*)\]\([^)]*\)/g;
     private imagePattern = /!\[([^\]]*)\]\([^)]*\)/g;
     private htmlTagPattern = /<[^>]*>/g;
-    
+
     /**
      * 从markdown文本中提取可翻译的内容
      * 过滤掉代码块、内联代码、链接URL等不需要翻译的部分
      */
-    public extractTranslatableContent(markdownText: string): string[] {
+    public extractTranslatableContent(markdownText: string): ExtractResult {
         // 保存原始文本的映射
-        const placeholders = new Map<string, string>();
+        const placeholderMap = new Map<string, string>();
         let processedText = markdownText;
         let placeholderIndex = 0;
-        
+
         // 替换代码块
         processedText = processedText.replace(this.codeBlockPattern, (match) => {
             const placeholder = `__CODE_BLOCK_${placeholderIndex++}__`;
-            placeholders.set(placeholder, match);
+            placeholderMap.set(placeholder, match);
             return placeholder;
         });
-        
+
         // 替换内联代码
         processedText = processedText.replace(this.inlineCodePattern, (match) => {
             const placeholder = `__INLINE_CODE_${placeholderIndex++}__`;
-            placeholders.set(placeholder, match);
+            placeholderMap.set(placeholder, match);
             return placeholder;
         });
-        
+
         // 替换图片（保留alt文本用于翻译）
         processedText = processedText.replace(this.imagePattern, (match, altText) => {
             const placeholder = `__IMAGE_${placeholderIndex++}__`;
-            placeholders.set(placeholder, match);
+            placeholderMap.set(placeholder, match);
             // 如果有alt文本，单独提取用于翻译
             return altText ? altText : placeholder;
         });
-        
+
         // 替换链接（保留链接文本用于翻译）
         processedText = processedText.replace(this.linkPattern, (match, linkText) => {
             const placeholder = `__LINK_${placeholderIndex++}__`;
-            placeholders.set(placeholder, match);
+            placeholderMap.set(placeholder, match);
             // 保留链接文本用于翻译
             return linkText;
         });
-        
+
         // 替换HTML标签
         processedText = processedText.replace(this.htmlTagPattern, (match) => {
             const placeholder = `__HTML_TAG_${placeholderIndex++}__`;
-            placeholders.set(placeholder, match);
+            placeholderMap.set(placeholder, match);
             return placeholder;
         });
-        
-        // 按行分割并过滤
+
+        // 按行分割并分析结构
         const lines = processedText.split('\n');
         const translatableLines: string[] = [];
-        
+        const lineStructure: LineInfo[] = [];
+
         for (const line of lines) {
             const trimmedLine = line.trim();
-            
-            // 跳过空行
+
+            // 空行
             if (!trimmedLine) {
                 translatableLines.push('');
+                lineStructure.push({
+                    originalLine: line,
+                    type: 'empty'
+                });
                 continue;
             }
-            
-            // 跳过纯占位符的行
+
+            // 纯占位符的行
             if (this.isPlaceholderOnly(trimmedLine)) {
                 translatableLines.push(line);
+                lineStructure.push({
+                    originalLine: line,
+                    type: 'placeholder_only'
+                });
                 continue;
             }
-            
-            // 跳过markdown标题标记（但保留标题文本）
+
+            // 标题
             if (trimmedLine.startsWith('#')) {
-                const titleText = trimmedLine.replace(/^#+\s*/, '');
-                if (titleText && !this.isPlaceholderOnly(titleText)) {
-                    translatableLines.push(titleText);
-                } else {
-                    translatableLines.push(line);
+                const headerMatch = trimmedLine.match(/^(#+\s*)(.*)/);
+                if (headerMatch) {
+                    const prefix = headerMatch[1];
+                    const titleText = headerMatch[2];
+                    if (titleText && !this.isPlaceholderOnly(titleText)) {
+                        translatableLines.push(titleText);
+                        lineStructure.push({
+                            originalLine: line,
+                            type: 'header',
+                            prefix: prefix,
+                            content: titleText
+                        });
+                    } else {
+                        translatableLines.push(line);
+                        lineStructure.push({
+                            originalLine: line,
+                            type: 'placeholder_only'
+                        });
+                    }
                 }
                 continue;
             }
-            
-            // 跳过列表标记（但保留列表文本）
-            if (trimmedLine.match(/^[\-\*\+]\s+/) || trimmedLine.match(/^\d+\.\s+/)) {
-                const listText = trimmedLine.replace(/^([\-\*\+]|\d+\.)\s+/, '');
+
+            // 列表
+            const listMatch = trimmedLine.match(/^([\-\*\+]|\d+\.)\s+(.*)/);
+            if (listMatch) {
+                const prefix = listMatch[1] + ' ';
+                const listText = listMatch[2];
                 if (listText && !this.isPlaceholderOnly(listText)) {
                     translatableLines.push(listText);
+                    lineStructure.push({
+                        originalLine: line,
+                        type: 'list',
+                        prefix: prefix,
+                        content: listText
+                    });
                 } else {
                     translatableLines.push(line);
+                    lineStructure.push({
+                        originalLine: line,
+                        type: 'placeholder_only'
+                    });
                 }
                 continue;
             }
-            
-            // 跳过引用标记（但保留引用文本）
-            if (trimmedLine.startsWith('>')) {
-                const quoteText = trimmedLine.replace(/^>\s*/, '');
+
+            // 引用
+            const quoteMatch = trimmedLine.match(/^(>\s*)(.*)/);
+            if (quoteMatch) {
+                const prefix = quoteMatch[1];
+                const quoteText = quoteMatch[2];
                 if (quoteText && !this.isPlaceholderOnly(quoteText)) {
                     translatableLines.push(quoteText);
+                    lineStructure.push({
+                        originalLine: line,
+                        type: 'quote',
+                        prefix: prefix,
+                        content: quoteText
+                    });
                 } else {
                     translatableLines.push(line);
+                    lineStructure.push({
+                        originalLine: line,
+                        type: 'placeholder_only'
+                    });
                 }
                 continue;
             }
-            
-            // 其他文本行直接添加
+
+            // 普通文本行
             translatableLines.push(trimmedLine);
+            lineStructure.push({
+                originalLine: line,
+                type: 'normal',
+                content: trimmedLine
+            });
         }
-        
-        // 存储映射以供后续重组使用
-        this.placeholderMap = placeholders;
-        
-        return translatableLines;
+
+        return {
+            translatableLines,
+            placeholderMap,
+            lineStructure
+        };
     }
     
     /**
      * 重新组装翻译后的内容
      */
     public reassembleContent(
-        originalText: string,
-        extractedContent: string[],
-        translatedContent: string[]
+        lineStructure: LineInfo[],
+        translatedContent: string[],
+        placeholderMap: Map<string, string>
     ): string {
-        const originalLines = originalText.split('\n');
         const result: string[] = [];
         let translatedIndex = 0;
-        
-        for (let i = 0; i < originalLines.length; i++) {
-            const originalLine = originalLines[i];
-            const trimmedLine = originalLine.trim();
-            
-            if (!trimmedLine) {
-                result.push(originalLine);
-                translatedIndex++;
-                continue;
+
+        for (const lineInfo of lineStructure) {
+            switch (lineInfo.type) {
+                case 'empty':
+                    result.push(lineInfo.originalLine);
+                    translatedIndex++;
+                    break;
+
+                case 'placeholder_only':
+                    // 恢复占位符内容
+                    const restoredLine = this.restorePlaceholders(lineInfo.originalLine, placeholderMap);
+                    result.push(restoredLine);
+                    translatedIndex++;
+                    break;
+
+                case 'header':
+                    if (translatedIndex < translatedContent.length) {
+                        const translatedText = this.restorePlaceholders(translatedContent[translatedIndex], placeholderMap);
+                        result.push((lineInfo.prefix || '') + translatedText);
+                    } else {
+                        result.push(lineInfo.originalLine);
+                    }
+                    translatedIndex++;
+                    break;
+
+                case 'list':
+                    if (translatedIndex < translatedContent.length) {
+                        const translatedText = this.restorePlaceholders(translatedContent[translatedIndex], placeholderMap);
+                        result.push((lineInfo.prefix || '') + translatedText);
+                    } else {
+                        result.push(lineInfo.originalLine);
+                    }
+                    translatedIndex++;
+                    break;
+
+                case 'quote':
+                    if (translatedIndex < translatedContent.length) {
+                        const translatedText = this.restorePlaceholders(translatedContent[translatedIndex], placeholderMap);
+                        result.push((lineInfo.prefix || '') + translatedText);
+                    } else {
+                        result.push(lineInfo.originalLine);
+                    }
+                    translatedIndex++;
+                    break;
+
+                case 'normal':
+                    if (translatedIndex < translatedContent.length) {
+                        const translatedText = this.restorePlaceholders(translatedContent[translatedIndex], placeholderMap);
+                        result.push(translatedText);
+                    } else {
+                        result.push(lineInfo.originalLine);
+                    }
+                    translatedIndex++;
+                    break;
+
+                default:
+                    result.push(lineInfo.originalLine);
+                    translatedIndex++;
+                    break;
             }
-            
-            if (translatedIndex < translatedContent.length) {
-                const translatedLine = translatedContent[translatedIndex];
-                
-                // 处理标题
-                if (trimmedLine.startsWith('#')) {
-                    const headerPrefix = trimmedLine.match(/^#+\s*/)?.[0] || '';
-                    result.push(headerPrefix + translatedLine);
-                }
-                // 处理列表
-                else if (trimmedLine.match(/^[\-\*\+]\s+/) || trimmedLine.match(/^\d+\.\s+/)) {
-                    const listPrefix = trimmedLine.match(/^([\-\*\+]|\d+\.)\s+/)?.[0] || '';
-                    result.push(listPrefix + translatedLine);
-                }
-                // 处理引用
-                else if (trimmedLine.startsWith('>')) {
-                    const quotePrefix = trimmedLine.match(/^>\s*/)?.[0] || '';
-                    result.push(quotePrefix + translatedLine);
-                }
-                // 普通文本
-                else {
-                    result.push(translatedLine);
-                }
-            } else {
-                result.push(originalLine);
-            }
-            
-            translatedIndex++;
         }
-        
+
         return result.join('\n');
+    }
+
+    /**
+     * 恢复文本中的占位符
+     */
+    private restorePlaceholders(text: string, placeholderMap: Map<string, string>): string {
+        let restoredText = text;
+
+        // 按占位符类型的优先级恢复（从最具体到最一般）
+        const placeholderPatterns = [
+            /__CODE_BLOCK_\d+__/g,
+            /__INLINE_CODE_\d+__/g,
+            /__IMAGE_\d+__/g,
+            /__LINK_\d+__/g,
+            /__HTML_TAG_\d+__/g
+        ];
+
+        for (const pattern of placeholderPatterns) {
+            restoredText = restoredText.replace(pattern, (match) => {
+                return placeholderMap.get(match) || match;
+            });
+        }
+
+        return restoredText;
     }
     
     private isPlaceholderOnly(text: string): boolean {
         return /^__[A-Z_]+_\d+__$/.test(text.trim());
     }
-    
-    private placeholderMap: Map<string, string> = new Map();
     
     /**
      * 检查文本是否包含中文字符

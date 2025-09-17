@@ -1,8 +1,8 @@
 {
   "name": "markdown-translator",
   "displayName": "Markdown Translator",
-  "description": "VSCode插件 - 智能markdown文档翻译工具，支持多种翻译引擎和LLM API",
-  "version": "0.0.1",
+  "description": "VSCode插件 - 智能markdown文档翻译工具，支持多种翻译引擎和LLM API，高性能并发翻译",
+  "version": "0.1.0",
   "publisher": "markdown-translator",
   "repository": "https://github.com/your-username/markdown-translator",
   "engines": {
@@ -83,10 +83,33 @@
           "default": "",
           "description": "OpenAI API密钥"
         },
+        "markdownTranslator.openaiModel": {
+          "type": "string",
+          "default": "gpt-3.5-turbo",
+          "enum": [
+            "gpt-3.5-turbo",
+            "gpt-4",
+            "gpt-4-turbo",
+            "gpt-4o",
+            "gpt-4o-mini"
+          ],
+          "description": "OpenAI模型名称"
+        },
         "markdownTranslator.claudeApiKey": {
           "type": "string",
           "default": "",
           "description": "Claude API密钥"
+        },
+        "markdownTranslator.claudeModel": {
+          "type": "string",
+          "default": "claude-3-haiku-20240307",
+          "enum": [
+            "claude-3-haiku-20240307",
+            "claude-3-sonnet-20240229",
+            "claude-3-opus-20240229",
+            "claude-3-5-sonnet-20241022"
+          ],
+          "description": "Claude模型名称"
         },
         "markdownTranslator.baiduAppId": {
           "type": "string",

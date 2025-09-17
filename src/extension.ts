@@ -73,39 +73,39 @@ async function translateDocument(targetLanguage: string) {
         vscode.window.showErrorMessage('没有打开的编辑器');
         return;
     }
-    
+
     if (!isMarkdownFile(editor.document)) {
         vscode.window.showErrorMessage('当前文件不是Markdown文档');
         return;
     }
-    
+
     try {
         const document = editor.document;
         const text = document.getText();
-        
+
         // 处理markdown内容，过滤代码块
-        const processedContent = markdownProcessor.extractTranslatableContent(text);
-        
-        if (processedContent.length === 0) {
+        const extractResult = markdownProcessor.extractTranslatableContent(text);
+
+        if (extractResult.translatableLines.length === 0) {
             vscode.window.showInformationMessage('没有找到需要翻译的内容');
             return;
         }
-        
+
         vscode.window.showInformationMessage('开始翻译文档...');
-        
+
         // 翻译处理后的内容
         const translatedContent = await translatorService.translateBatch(
-            processedContent,
+            extractResult.translatableLines,
             targetLanguage
         );
-        
+
         // 重新组装markdown文档
         const finalContent = markdownProcessor.reassembleContent(
-            text,
-            processedContent,
-            translatedContent
+            extractResult.lineStructure,
+            translatedContent,
+            extractResult.placeholderMap
         );
-        
+
         // 替换文档内容
         const edit = new vscode.WorkspaceEdit();
         const fullRange = new vscode.Range(
@@ -113,10 +113,10 @@ async function translateDocument(targetLanguage: string) {
             document.positionAt(text.length)
         );
         edit.replace(document.uri, fullRange, finalContent);
-        
+
         await vscode.workspace.applyEdit(edit);
         vscode.window.showInformationMessage('文档翻译完成！');
-        
+
     } catch (error) {
         vscode.window.showErrorMessage(`翻译失败: ${error}`);
     }
