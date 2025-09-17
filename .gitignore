@@ -200,7 +200,9 @@ test-sample-*.md
 translation-test/
 
 # 本地开发配置
-.vscode/settings.local.json
+.vscode/
+.claude/
+.cursor/
 
 # 性能分析文件
 *.cpuprofile
