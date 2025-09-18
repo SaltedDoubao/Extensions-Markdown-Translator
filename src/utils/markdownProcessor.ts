@@ -14,8 +14,8 @@ export interface LineInfo {
 export class MarkdownProcessor {
     private codeBlockPattern = /```[\s\S]*?```/g;
     private inlineCodePattern = /`[^`]*?`/g;
-    private linkPattern = /\[([^\]]*)\]\([^)]*\)/g;
-    private imagePattern = /!\[([^\]]*)\]\([^)]*\)/g;
+    private linkPattern = /\[([^\]]*)\]\(([^)]*)\)/g;
+    private imagePattern = /!\[([^\]]*)\]\(([^)]*)\)/g;
     private htmlTagPattern = /<[^>]*>/g;
 
     /**
@@ -42,20 +42,40 @@ export class MarkdownProcessor {
             return placeholder;
         });
 
-        // 替换图片（保留alt文本用于翻译）
-        processedText = processedText.replace(this.imagePattern, (match, altText) => {
-            const placeholder = `__IMAGE_${placeholderIndex++}__`;
-            placeholderMap.set(placeholder, match);
-            // 如果有alt文本，单独提取用于翻译
-            return altText ? altText : placeholder;
+        // 替换图片（保留alt文本用于翻译，保持图片格式）
+        processedText = processedText.replace(this.imagePattern, (match, altText, url) => {
+            const urlPlaceholder = `__IMG_URL_${placeholderIndex++}__`;
+            placeholderMap.set(urlPlaceholder, url);
+
+            // 如果有alt文本，创建可翻译的alt文本占位符，但保持图片格式
+            if (altText && altText.trim()) {
+                const altPlaceholder = `__IMG_ALT_${placeholderIndex++}__`;
+                placeholderMap.set(altPlaceholder, altText);
+                return `![${altPlaceholder}](${urlPlaceholder})`;
+            } else {
+                // 没有alt文本的图片
+                const placeholder = `__IMAGE_${placeholderIndex++}__`;
+                placeholderMap.set(placeholder, match);
+                return placeholder;
+            }
         });
 
-        // 替换链接（保留链接文本用于翻译）
-        processedText = processedText.replace(this.linkPattern, (match, linkText) => {
-            const placeholder = `__LINK_${placeholderIndex++}__`;
-            placeholderMap.set(placeholder, match);
-            // 保留链接文本用于翻译
-            return linkText;
+        // 替换链接（保留链接文本用于翻译，保持链接结构）
+        processedText = processedText.replace(this.linkPattern, (match, linkText, url) => {
+            const urlPlaceholder = `__LINK_URL_${placeholderIndex++}__`;
+            placeholderMap.set(urlPlaceholder, url);
+
+            // 如果链接文本不为空且不是URL，则创建可翻译的链接文本占位符
+            if (linkText && linkText.trim() && !this.isUrl(linkText)) {
+                const textPlaceholder = `__LINK_TEXT_${placeholderIndex++}__`;
+                placeholderMap.set(textPlaceholder, linkText);
+                return `[${textPlaceholder}](${urlPlaceholder})`;
+            } else {
+                // 如果链接文本是URL或为空，保持原样不翻译
+                const placeholder = `__LINK_${placeholderIndex++}__`;
+                placeholderMap.set(placeholder, match);
+                return placeholder;
+            }
         });
 
         // 替换HTML标签
@@ -265,6 +285,10 @@ export class MarkdownProcessor {
         const placeholderPatterns = [
             /__CODE_BLOCK_\d+__/g,
             /__INLINE_CODE_\d+__/g,
+            /__IMG_ALT_\d+__/g,
+            /__IMG_URL_\d+__/g,
+            /__LINK_TEXT_\d+__/g,
+            /__LINK_URL_\d+__/g,
             /__IMAGE_\d+__/g,
             /__LINK_\d+__/g,
             /__HTML_TAG_\d+__/g
@@ -280,7 +304,34 @@ export class MarkdownProcessor {
     }
     
     private isPlaceholderOnly(text: string): boolean {
-        return /^__[A-Z_]+_\d+__$/.test(text.trim());
+        // 检查是否为各种类型的占位符
+        const placeholderPatterns = [
+            /^__CODE_BLOCK_\d+__$/,
+            /^__INLINE_CODE_\d+__$/,
+            /^__IMAGE_\d+__$/,
+            /^__LINK_\d+__$/,
+            /^__HTML_TAG_\d+__$/,
+            /^__IMG_ALT_\d+__$/,
+            /^__LINK_TEXT_\d+__$/,
+            /^__LINK_URL_\d+__$/
+        ];
+
+        const trimmedText = text.trim();
+        return placeholderPatterns.some(pattern => pattern.test(trimmedText));
+    }
+
+    /**
+     * 检查文本是否是URL
+     */
+    private isUrl(text: string): boolean {
+        try {
+            // 检查是否是完整的URL
+            new URL(text);
+            return true;
+        } catch {
+            // 检查是否是相对路径或其他URL形式
+            return /^(https?:\/\/|mailto:|tel:|#|\.\.?\/|\/)/i.test(text);
+        }
     }
     
     /**

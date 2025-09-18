@@ -211,7 +211,8 @@ translation-test/
 # 调试文件
 debug.log
 *.debug
-
+TestMarkdown/
+test/
 # 自定义文件
 代码审查报告.md
 需求分析.md
