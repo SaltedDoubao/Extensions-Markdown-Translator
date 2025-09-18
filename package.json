@@ -43,11 +43,20 @@
       },
       {
         "command": "markdownTranslator.autoTranslate",
-        "title": "自动翻译当前文档",
+        "title": "翻译",
         "category": "Markdown Translator",
         "icon": {
-          "light": "src/images/icon.ico",
-          "dark": "src/images/icon.ico"
+          "light": "src/images/run.ico",
+          "dark": "src/images/run.ico"
+        }
+      },
+      {
+        "command": "markdownTranslator.undoTranslate",
+        "title": "返回",
+        "category": "Markdown Translator",
+        "icon": {
+          "light": "src/images/back.ico",
+          "dark": "src/images/back.ico"
         }
       },
       {
@@ -66,8 +75,13 @@
       ],
       "editor/title": [
         {
-          "when": "resourceExtname == .md",
+          "when": "resourceExtname == .md && !markdownTranslator.hasCopyFile",
           "command": "markdownTranslator.autoTranslate",
+          "group": "navigation"
+        },
+        {
+          "when": "resourceExtname == .md && markdownTranslator.hasCopyFile",
+          "command": "markdownTranslator.undoTranslate",
           "group": "navigation"
         }
       ]

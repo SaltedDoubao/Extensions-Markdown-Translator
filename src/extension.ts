@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { TranslatorService } from './services/translatorService';
 import { MarkdownProcessor } from './utils/markdownProcessor';
 import { LanguageDetector } from './utils/languageDetector';
@@ -25,11 +27,19 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidOpenTextDocument(handleDocumentOpen)
     );
-    
+
+    // 监听活动编辑器改变事件
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(updateButtonContext)
+    );
+
     // 监听配置变更
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(handleConfigurationChange)
     );
+
+    // 初始更新按钮状态
+    updateButtonContext();
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
@@ -65,6 +75,14 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
     );
 
+    // 取消翻译
+    const undoTranslate = vscode.commands.registerCommand(
+        'markdownTranslator.undoTranslate',
+        async () => {
+            await undoTranslateCurrentDocument();
+        }
+    );
+
     // 打开设置页面
     const openSettings = vscode.commands.registerCommand(
         'markdownTranslator.openSettings',
@@ -78,24 +96,33 @@ function registerCommands(context: vscode.ExtensionContext) {
         translateToChinese,
         translateSelection,
         autoTranslate,
+        undoTranslate,
         openSettings
     );
 }
 
-function generateCopyFilePath(originalPath: string, targetLanguage: string): string {
-    const path = require('path');
+function generateCopyFilePath(originalPath: string, targetLanguage?: string): string {
     const dir = path.dirname(originalPath);
     const ext = path.extname(originalPath);
     const nameWithoutExt = path.basename(originalPath, ext);
 
-    // 特殊处理 README 文件
-    if (nameWithoutExt.toLowerCase() === 'readme') {
-        const languageCode = getLanguageCode(targetLanguage);
-        return path.join(dir, `README.${languageCode}${ext}`);
-    }
+    // 根据新规则，直接使用 _copy 后缀
+    return path.join(dir, `${nameWithoutExt}_copy${ext}`);
+}
 
-    // 普通文件添加 -copy 后缀
-    return path.join(dir, `${nameWithoutExt}-copy${ext}`);
+function checkCopyFileExists(originalPath: string): boolean {
+    const copyFilePath = generateCopyFilePath(originalPath);
+    return fs.existsSync(copyFilePath);
+}
+
+function updateButtonContext() {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && isMarkdownFile(editor.document)) {
+        const hasCopyFile = checkCopyFileExists(editor.document.uri.fsPath);
+        vscode.commands.executeCommand('setContext', 'markdownTranslator.hasCopyFile', hasCopyFile);
+    } else {
+        vscode.commands.executeCommand('setContext', 'markdownTranslator.hasCopyFile', false);
+    }
 }
 
 function getLanguageCode(targetLanguage: string): string {
@@ -115,9 +142,6 @@ function getLanguageCode(targetLanguage: string): string {
 }
 
 async function translateDocument(targetLanguage: string) {
-    const config = vscode.workspace.getConfiguration('markdownTranslator');
-    const createCopyFile = config.get<boolean>('createCopyFile', true);
-
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage('没有打开的编辑器');
@@ -133,6 +157,16 @@ async function translateDocument(targetLanguage: string) {
         const document = editor.document;
         const text = document.getText();
         const originalPath = document.uri.fsPath;
+
+        // 按照新流程：先复制原文件为 _copy 版本，再翻译原文件
+        const copyFilePath = generateCopyFilePath(originalPath);
+
+        // 1. 创建 copy 文件
+        const copyFileUri = vscode.Uri.file(copyFilePath);
+        const edit = new vscode.WorkspaceEdit();
+        edit.createFile(copyFileUri, { ignoreIfExists: false });
+        edit.insert(copyFileUri, new vscode.Position(0, 0), text);
+        await vscode.workspace.applyEdit(edit);
 
         // 处理markdown内容，过滤代码块
         const extractResult = markdownProcessor.extractTranslatableContent(text);
@@ -157,38 +191,73 @@ async function translateDocument(targetLanguage: string) {
             extractResult.placeholderMap
         );
 
-        if (createCopyFile) {
-            // 生成副本文件而不是修改原文件
-            const newFilePath = generateCopyFilePath(originalPath, targetLanguage);
-            const newFileUri = vscode.Uri.file(newFilePath);
+        // 2. 翻译原文件
+        const fullRange = new vscode.Range(
+            document.positionAt(0),
+            document.positionAt(text.length)
+        );
+        const translateEdit = new vscode.WorkspaceEdit();
+        translateEdit.replace(document.uri, fullRange, finalContent);
+        await vscode.workspace.applyEdit(translateEdit);
 
-            // 创建新文件
-            const edit = new vscode.WorkspaceEdit();
-            edit.createFile(newFileUri, { ignoreIfExists: true });
-            edit.insert(newFileUri, new vscode.Position(0, 0), finalContent);
+        // 更新按钮状态
+        updateButtonContext();
 
-            await vscode.workspace.applyEdit(edit);
-
-            // 打开新创建的文件
-            const newDocument = await vscode.workspace.openTextDocument(newFileUri);
-            await vscode.window.showTextDocument(newDocument);
-
-            vscode.window.showInformationMessage(`翻译完成！已生成副本文件: ${newFilePath}`);
-        } else {
-            // 直接修改当前文件（原有行为）
-            const edit = new vscode.WorkspaceEdit();
-            const fullRange = new vscode.Range(
-                document.positionAt(0),
-                document.positionAt(text.length)
-            );
-            edit.replace(document.uri, fullRange, finalContent);
-
-            await vscode.workspace.applyEdit(edit);
-            vscode.window.showInformationMessage('文档翻译完成！');
-        }
+        vscode.window.showInformationMessage('翻译完成！已创建备份文件: ' + copyFilePath);
 
     } catch (error) {
         vscode.window.showErrorMessage(`翻译失败: ${error}`);
+    }
+}
+
+async function undoTranslateCurrentDocument() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('没有打开的编辑器');
+        return;
+    }
+
+    if (!isMarkdownFile(editor.document)) {
+        vscode.window.showErrorMessage('当前文件不是Markdown文档');
+        return;
+    }
+
+    try {
+        const document = editor.document;
+        const originalPath = document.uri.fsPath;
+        const copyFilePath = generateCopyFilePath(originalPath);
+
+        // 检查 copy 文件是否存在
+        if (!fs.existsSync(copyFilePath)) {
+            vscode.window.showErrorMessage('找不到备份文件');
+            return;
+        }
+
+        // 读取 copy 文件的内容
+        const copyContent = fs.readFileSync(copyFilePath, 'utf8');
+
+        // 1. 删除翻译后的原文件内容，恢复 copy 文件内容
+        const fullRange = new vscode.Range(
+            document.positionAt(0),
+            document.positionAt(document.getText().length)
+        );
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, fullRange, copyContent);
+        await vscode.workspace.applyEdit(edit);
+
+        // 2. 删除 copy 文件
+        const copyFileUri = vscode.Uri.file(copyFilePath);
+        const deleteEdit = new vscode.WorkspaceEdit();
+        deleteEdit.deleteFile(copyFileUri);
+        await vscode.workspace.applyEdit(deleteEdit);
+
+        // 更新按钮状态
+        updateButtonContext();
+
+        vscode.window.showInformationMessage('已恢复原文档');
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`恢复失败: ${error}`);
     }
 }
 
@@ -297,14 +366,19 @@ function getInternalLanguageCode(configLanguage: string): string {
 async function handleDocumentOpen(document: vscode.TextDocument) {
     const config = vscode.workspace.getConfiguration('markdownTranslator');
     const autoTranslateOnOpen = config.get<boolean>('autoTranslateOnOpen', false);
-    
-    if (autoTranslateOnOpen && isMarkdownFile(document)) {
-        // 延迟一下再自动翻译，确保文档完全加载
-        setTimeout(async () => {
-            if (vscode.window.activeTextEditor?.document === document) {
-                await autoTranslateCurrentDocument();
-            }
-        }, 1000);
+
+    if (isMarkdownFile(document)) {
+        // 更新按钮状态
+        updateButtonContext();
+
+        if (autoTranslateOnOpen) {
+            // 延迟一下再自动翻译，确保文档完全加载
+            setTimeout(async () => {
+                if (vscode.window.activeTextEditor?.document === document) {
+                    await autoTranslateCurrentDocument();
+                }
+            }, 1000);
+        }
     }
 }
 
