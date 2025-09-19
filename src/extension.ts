@@ -155,8 +155,14 @@ async function translateDocument(targetLanguage: string) {
 
     try {
         const document = editor.document;
-        const text = document.getText();
         const originalPath = document.uri.fsPath;
+
+        // 0. 首先保存当前文档，确保获取到最新内容
+        if (document.isDirty) {
+            await document.save();
+        }
+
+        const text = document.getText();
 
         // 按照新流程：先复制原文件为 _copy 版本，再翻译原文件
         const copyFilePath = generateCopyFilePath(originalPath);
@@ -167,6 +173,10 @@ async function translateDocument(targetLanguage: string) {
         edit.createFile(copyFileUri, { ignoreIfExists: false });
         edit.insert(copyFileUri, new vscode.Position(0, 0), text);
         await vscode.workspace.applyEdit(edit);
+
+        // 保存copy文件
+        const copyDocument = await vscode.workspace.openTextDocument(copyFileUri);
+        await copyDocument.save();
 
         // 处理markdown内容，过滤代码块
         const extractResult = markdownProcessor.extractTranslatableContent(text);
@@ -199,6 +209,9 @@ async function translateDocument(targetLanguage: string) {
         const translateEdit = new vscode.WorkspaceEdit();
         translateEdit.replace(document.uri, fullRange, finalContent);
         await vscode.workspace.applyEdit(translateEdit);
+
+        // 保存翻译后的文档
+        await document.save();
 
         // 更新按钮状态
         updateButtonContext();
@@ -244,6 +257,9 @@ async function undoTranslateCurrentDocument() {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(document.uri, fullRange, copyContent);
         await vscode.workspace.applyEdit(edit);
+
+        // 保存恢复后的文档
+        await document.save();
 
         // 2. 删除 copy 文件
         const copyFileUri = vscode.Uri.file(copyFilePath);
