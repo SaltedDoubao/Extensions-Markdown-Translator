@@ -219,7 +219,12 @@ async function translateDocument(targetLanguage: string) {
         vscode.window.showInformationMessage('翻译完成！已创建备份文件: ' + copyFilePath);
 
     } catch (error) {
-        vscode.window.showErrorMessage(`翻译失败: ${error}`);
+        // 如果是翻译被取消，显示特殊消息
+        if (error instanceof Error && error.message.includes('翻译已被取消')) {
+            vscode.window.showInformationMessage('翻译已取消');
+        } else {
+            vscode.window.showErrorMessage(`翻译失败: ${error}`);
+        }
     }
 }
 
@@ -233,6 +238,15 @@ async function undoTranslateCurrentDocument() {
     if (!isMarkdownFile(editor.document)) {
         vscode.window.showErrorMessage('当前文件不是Markdown文档');
         return;
+    }
+
+    // 如果正在翻译，先中止翻译任务
+    if (translatorService.getIsTranslating()) {
+        translatorService.abortTranslation();
+        vscode.window.showInformationMessage('已中止翻译任务');
+
+        // 等待一下让翻译任务完全停止
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     try {

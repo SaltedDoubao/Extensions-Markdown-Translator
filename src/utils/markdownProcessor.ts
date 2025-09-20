@@ -6,9 +6,16 @@ export interface ExtractResult {
 
 export interface LineInfo {
     originalLine: string;
-    type: 'empty' | 'placeholder_only' | 'header' | 'list' | 'quote' | 'normal';
+    type: 'empty' | 'placeholder_only' | 'header' | 'list' | 'quote' | 'table_row' | 'table_separator' | 'code_block' | 'normal';
     prefix?: string;
     content?: string;
+    tableData?: TableCellData[];
+}
+
+export interface TableCellData {
+    originalContent: string;
+    translatableContent?: string;
+    isTranslatable: boolean;
 }
 
 export class MarkdownProcessor {
@@ -17,62 +24,82 @@ export class MarkdownProcessor {
     private linkPattern = /\[([^\]]*)\]\(([^)]*)\)/g;
     private imagePattern = /!\[([^\]]*)\]\(([^)]*)\)/g;
     private htmlTagPattern = /<[^>]*>/g;
+    private tableRowPattern = /^\s*\|.*\|\s*$/;
+    private tableSeparatorPattern = /^\s*\|[\s\-\:\|]*\|\s*$/;
+    private codeBlockStartPattern = /^\s*```/;
 
     /**
      * 从markdown文本中提取可翻译的内容
      * 过滤掉代码块、内联代码、链接URL等不需要翻译的部分
      */
     public extractTranslatableContent(markdownText: string): ExtractResult {
-        // 保存原始文本的映射
         const placeholderMap = new Map<string, string>();
-        let processedText = markdownText;
         let placeholderIndex = 0;
 
-        // 替换代码块
-        processedText = processedText.replace(this.codeBlockPattern, (match) => {
-            const placeholder = `__CODE_BLOCK_${placeholderIndex++}__`;
-            placeholderMap.set(placeholder, match);
-            return placeholder;
-        });
+        // 首先处理代码块（按行处理以便更好地控制结构）
+        const lines = markdownText.split('\n');
+        const processedLines: string[] = [];
+        let inCodeBlock = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            // 检查代码块开始/结束
+            if (this.codeBlockStartPattern.test(line)) {
+                inCodeBlock = !inCodeBlock;
+                const placeholder = this.generateSafePlaceholder('CODE_BLOCK_LINE', placeholderIndex++);
+                placeholderMap.set(placeholder, line);
+                processedLines.push(placeholder);
+                continue;
+            }
+
+            // 代码块内的行
+            if (inCodeBlock) {
+                const placeholder = this.generateSafePlaceholder('CODE_BLOCK_LINE', placeholderIndex++);
+                placeholderMap.set(placeholder, line);
+                processedLines.push(placeholder);
+                continue;
+            }
+
+            processedLines.push(line);
+        }
+
+        let processedText = processedLines.join('\n');
 
         // 替换内联代码
         processedText = processedText.replace(this.inlineCodePattern, (match) => {
-            const placeholder = `__INLINE_CODE_${placeholderIndex++}__`;
+            const placeholder = this.generateSafePlaceholder('INLINE_CODE', placeholderIndex++);
             placeholderMap.set(placeholder, match);
             return placeholder;
         });
 
-        // 替换图片（保留alt文本用于翻译，保持图片格式）
+        // 替换图片（保留alt文本用于翻译）
         processedText = processedText.replace(this.imagePattern, (match, altText, url) => {
-            const urlPlaceholder = `__IMG_URL_${placeholderIndex++}__`;
+            const urlPlaceholder = this.generateSafePlaceholder('IMG_URL', placeholderIndex++);
             placeholderMap.set(urlPlaceholder, url);
 
-            // 如果有alt文本，创建可翻译的alt文本占位符，但保持图片格式
             if (altText && altText.trim()) {
-                const altPlaceholder = `__IMG_ALT_${placeholderIndex++}__`;
+                const altPlaceholder = this.generateSafePlaceholder('IMG_ALT', placeholderIndex++);
                 placeholderMap.set(altPlaceholder, altText);
                 return `![${altPlaceholder}](${urlPlaceholder})`;
             } else {
-                // 没有alt文本的图片
-                const placeholder = `__IMAGE_${placeholderIndex++}__`;
+                const placeholder = this.generateSafePlaceholder('IMAGE', placeholderIndex++);
                 placeholderMap.set(placeholder, match);
                 return placeholder;
             }
         });
 
-        // 替换链接（保留链接文本用于翻译，保持链接结构）
+        // 替换链接（保留链接文本用于翻译）
         processedText = processedText.replace(this.linkPattern, (match, linkText, url) => {
-            const urlPlaceholder = `__LINK_URL_${placeholderIndex++}__`;
+            const urlPlaceholder = this.generateSafePlaceholder('LINK_URL', placeholderIndex++);
             placeholderMap.set(urlPlaceholder, url);
 
-            // 如果链接文本不为空且不是URL，则创建可翻译的链接文本占位符
             if (linkText && linkText.trim() && !this.isUrl(linkText)) {
-                const textPlaceholder = `__LINK_TEXT_${placeholderIndex++}__`;
+                const textPlaceholder = this.generateSafePlaceholder('LINK_TEXT', placeholderIndex++);
                 placeholderMap.set(textPlaceholder, linkText);
                 return `[${textPlaceholder}](${urlPlaceholder})`;
             } else {
-                // 如果链接文本是URL或为空，保持原样不翻译
-                const placeholder = `__LINK_${placeholderIndex++}__`;
+                const placeholder = this.generateSafePlaceholder('LINK', placeholderIndex++);
                 placeholderMap.set(placeholder, match);
                 return placeholder;
             }
@@ -80,17 +107,17 @@ export class MarkdownProcessor {
 
         // 替换HTML标签
         processedText = processedText.replace(this.htmlTagPattern, (match) => {
-            const placeholder = `__HTML_TAG_${placeholderIndex++}__`;
+            const placeholder = this.generateSafePlaceholder('HTML_TAG', placeholderIndex++);
             placeholderMap.set(placeholder, match);
             return placeholder;
         });
 
-        // 按行分割并分析结构
-        const lines = processedText.split('\n');
+        // 按行分析结构
+        const finalLines = processedText.split('\n');
         const translatableLines: string[] = [];
         const lineStructure: LineInfo[] = [];
 
-        for (const line of lines) {
+        for (const line of finalLines) {
             const trimmedLine = line.trim();
 
             // 空行
@@ -99,6 +126,43 @@ export class MarkdownProcessor {
                 lineStructure.push({
                     originalLine: line,
                     type: 'empty'
+                });
+                continue;
+            }
+
+            // 代码块行（占位符）
+            if (this.isCodeBlockPlaceholder(trimmedLine)) {
+                translatableLines.push(line);
+                lineStructure.push({
+                    originalLine: line,
+                    type: 'code_block'
+                });
+                continue;
+            }
+
+            // 表格分隔行
+            if (this.tableSeparatorPattern.test(trimmedLine)) {
+                translatableLines.push(line);
+                lineStructure.push({
+                    originalLine: line,
+                    type: 'table_separator'
+                });
+                continue;
+            }
+
+            // 表格行
+            if (this.tableRowPattern.test(trimmedLine)) {
+                const tableData = this.parseTableRow(trimmedLine);
+                const translatableCells = tableData
+                    .filter(cell => cell.isTranslatable)
+                    .map(cell => cell.translatableContent || '')
+                    .join('\n');
+
+                translatableLines.push(translatableCells);
+                lineStructure.push({
+                    originalLine: line,
+                    type: 'table_row',
+                    tableData: tableData
                 });
                 continue;
             }
@@ -199,7 +263,7 @@ export class MarkdownProcessor {
             lineStructure
         };
     }
-    
+
     /**
      * 重新组装翻译后的内容
      */
@@ -218,10 +282,26 @@ export class MarkdownProcessor {
                     translatedIndex++;
                     break;
 
+                case 'code_block':
+                case 'table_separator':
                 case 'placeholder_only':
-                    // 恢复占位符内容
                     const restoredLine = this.restorePlaceholders(lineInfo.originalLine, placeholderMap);
                     result.push(restoredLine);
+                    translatedIndex++;
+                    break;
+
+                case 'table_row':
+                    if (lineInfo.tableData && translatedIndex < translatedContent.length) {
+                        const reassembledTable = this.reassembleTableRow(
+                            lineInfo.tableData,
+                            translatedContent[translatedIndex],
+                            placeholderMap
+                        );
+                        result.push(reassembledTable);
+                    } else {
+                        const restoredLine = this.restorePlaceholders(lineInfo.originalLine, placeholderMap);
+                        result.push(restoredLine);
+                    }
                     translatedIndex++;
                     break;
 
@@ -283,15 +363,15 @@ export class MarkdownProcessor {
 
         // 按占位符类型的优先级恢复（从最具体到最一般）
         const placeholderPatterns = [
-            /__CODE_BLOCK_\d+__/g,
-            /__INLINE_CODE_\d+__/g,
-            /__IMG_ALT_\d+__/g,
-            /__IMG_URL_\d+__/g,
-            /__LINK_TEXT_\d+__/g,
-            /__LINK_URL_\d+__/g,
-            /__IMAGE_\d+__/g,
-            /__LINK_\d+__/g,
-            /__HTML_TAG_\d+__/g
+            /___CODE_BLOCK_LINE_\d+___SAFE___/g,
+            /___INLINE_CODE_\d+___SAFE___/g,
+            /___IMG_ALT_\d+___SAFE___/g,
+            /___IMG_URL_\d+___SAFE___/g,
+            /___LINK_TEXT_\d+___SAFE___/g,
+            /___LINK_URL_\d+___SAFE___/g,
+            /___IMAGE_\d+___SAFE___/g,
+            /___LINK_\d+___SAFE___/g,
+            /___HTML_TAG_\d+___SAFE___/g
         ];
 
         for (const pattern of placeholderPatterns) {
@@ -300,20 +380,19 @@ export class MarkdownProcessor {
             });
         }
 
+        // 额外的容错机制：处理可能被翻译引擎修改的占位符
+        restoredText = this.restoreCorruptedPlaceholders(restoredText, placeholderMap);
+
         return restoredText;
     }
-    
+
     private isPlaceholderOnly(text: string): boolean {
-        // 检查是否为各种类型的占位符
         const placeholderPatterns = [
-            /^__CODE_BLOCK_\d+__$/,
-            /^__INLINE_CODE_\d+__$/,
-            /^__IMAGE_\d+__$/,
-            /^__LINK_\d+__$/,
-            /^__HTML_TAG_\d+__$/,
-            /^__IMG_ALT_\d+__$/,
-            /^__LINK_TEXT_\d+__$/,
-            /^__LINK_URL_\d+__$/
+            /^___CODE_BLOCK_LINE_\d+___SAFE___$/,
+            /^___INLINE_CODE_\d+___SAFE___$/,
+            /^___IMAGE_\d+___SAFE___$/,
+            /^___LINK_\d+___SAFE___$/,
+            /^___HTML_TAG_\d+___SAFE___$/
         ];
 
         const trimmedText = text.trim();
@@ -333,14 +412,14 @@ export class MarkdownProcessor {
             return /^(https?:\/\/|mailto:|tel:|#|\.\.?\/|\/)/i.test(text);
         }
     }
-    
+
     /**
      * 检查文本是否包含中文字符
      */
     public containsChinese(text: string): boolean {
         return /[\u4e00-\u9fff]/.test(text);
     }
-    
+
     /**
      * 检查文本是否主要是英文
      */
@@ -349,7 +428,7 @@ export class MarkdownProcessor {
         const englishMatches = text.match(englishPattern);
         return englishMatches ? englishMatches.length / text.length > 0.7 : false;
     }
-    
+
     /**
      * 清理文本，去除多余的空白字符
      */
@@ -358,5 +437,86 @@ export class MarkdownProcessor {
             .replace(/\s+/g, ' ')  // 多个空白字符替换为单个空格
             .replace(/\n\s*\n/g, '\n\n')  // 多个换行符替换为双换行
             .trim();
+    }
+
+    /**
+     * 生成安全的占位符
+     */
+    private generateSafePlaceholder(type: string, index: number): string {
+        return `___${type}_${index}___SAFE___`;
+    }
+
+    /**
+     * 检查是否为代码块占位符
+     */
+    private isCodeBlockPlaceholder(text: string): boolean {
+        return /^___CODE_BLOCK_LINE_\d+___SAFE___$/.test(text.trim());
+    }
+
+    /**
+     * 解析表格行
+     */
+    private parseTableRow(line: string): TableCellData[] {
+        const trimmed = line.trim();
+        // 移除首尾的 |
+        const cellsText = trimmed.slice(1, -1);
+        const cells = cellsText.split('|');
+
+        return cells.map(cell => {
+            const trimmedCell = cell.trim();
+            const isTranslatable = !!(trimmedCell &&
+                                      !this.isPlaceholderOnly(trimmedCell) &&
+                                      !/^[\s\-\:\|]*$/.test(trimmedCell)); // 不是分隔符内容
+
+            return {
+                originalContent: trimmedCell,
+                translatableContent: isTranslatable ? trimmedCell : undefined,
+                isTranslatable
+            };
+        });
+    }
+
+    /**
+     * 重新组装表格行
+     */
+    private reassembleTableRow(
+        tableData: TableCellData[],
+        translatedContent: string,
+        placeholderMap: Map<string, string>
+    ): string {
+        const translatedCells = translatedContent.split('\n').filter(cell => cell.trim());
+        let translatedIndex = 0;
+
+        const reassembledCells = tableData.map(cellData => {
+            if (cellData.isTranslatable && translatedIndex < translatedCells.length) {
+                const translatedCell = this.restorePlaceholders(translatedCells[translatedIndex], placeholderMap);
+                translatedIndex++;
+                return translatedCell;
+            } else {
+                return this.restorePlaceholders(cellData.originalContent, placeholderMap);
+            }
+        });
+
+        return '| ' + reassembledCells.join(' | ') + ' |';
+    }
+
+    /**
+     * 恢复可能被翻译引擎损坏的占位符
+     */
+    private restoreCorruptedPlaceholders(text: string, placeholderMap: Map<string, string>): string {
+        let restoredText = text;
+
+        // 尝试匹配可能被修改的占位符模式
+        for (const [placeholder, originalText] of placeholderMap.entries()) {
+            // 移除特殊字符后的模糊匹配
+            const simplifiedPlaceholder = placeholder.replace(/[_]/g, '').toLowerCase();
+            const pattern = new RegExp(simplifiedPlaceholder.replace(/\d+/g, '\\d*'), 'gi');
+
+            if (pattern.test(restoredText)) {
+                restoredText = restoredText.replace(pattern, originalText);
+            }
+        }
+
+        return restoredText;
     }
 }
