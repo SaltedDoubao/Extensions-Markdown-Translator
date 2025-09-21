@@ -27,22 +27,11 @@
   "contributes": {
     "commands": [
       {
-        "command": "markdownTranslator.translateToEnglish",
-        "title": "翻译为英文",
-        "category": "Markdown Translator"
+        "command": "mdtranslate.translateCurrentFile",
+        "title": "Translate Markdown (mdTranslator)"
       },
       {
-        "command": "markdownTranslator.translateToChinese",
-        "title": "翻译为中文",
-        "category": "Markdown Translator"
-      },
-      {
-        "command": "markdownTranslator.translateSelection",
-        "title": "翻译选中文本",
-        "category": "Markdown Translator"
-      },
-      {
-        "command": "markdownTranslator.autoTranslate",
+        "command": "mdtranslate.autoTranslate",
         "title": "翻译",
         "category": "Markdown Translator",
         "icon": {
@@ -51,7 +40,7 @@
         }
       },
       {
-        "command": "markdownTranslator.undoTranslate",
+        "command": "mdtranslate.undoTranslate",
         "title": "返回",
         "category": "Markdown Translator",
         "icon": {
@@ -60,28 +49,21 @@
         }
       },
       {
-        "command": "markdownTranslator.openSettings",
+        "command": "mdtranslate.openSettings",
         "title": "打开配置页面",
         "category": "Markdown Translator"
       }
     ],
     "menus": {
-      "editor/context": [
-        {
-          "when": "resourceExtname == .md",
-          "command": "markdownTranslator.translateSelection",
-          "group": "1_modification"
-        }
-      ],
       "editor/title": [
         {
-          "when": "resourceExtname == .md && !markdownTranslator.hasCopyFile",
-          "command": "markdownTranslator.autoTranslate",
+          "when": "resourceExtname == .md && !mdTranslator.hasCopyFile",
+          "command": "mdtranslate.autoTranslate",
           "group": "navigation"
         },
         {
-          "when": "resourceExtname == .md && markdownTranslator.hasCopyFile",
-          "command": "markdownTranslator.undoTranslate",
+          "when": "resourceExtname == .md && mdTranslator.hasCopyFile",
+          "command": "mdtranslate.undoTranslate",
           "group": "navigation"
         }
       ]
@@ -90,137 +72,108 @@
       "type": "object",
       "title": "Markdown Translator",
       "properties": {
-        "markdownTranslator.defaultEngine": {
+        "mdTranslator.defaultEngine": {
           "type": "string",
           "default": "google",
           "enum": [
             "google",
-            "baidu",
             "microsoft",
-            "siliconflow",
             "openai",
-            "openai-compatible",
-            "local-llm",
             "claude",
-            "gemini"
+            "openai-compatible",
+            "ollama",
+            "lm-studio"
+          ],
+          "enumDescriptions": [
+            "Google Translate",
+            "Microsoft Translator",
+            "OpenAI GPT",
+            "Anthropic Claude",
+            "OpenAI Compatible API",
+            "Ollama",
+            "LM Studio"
           ],
           "description": "默认翻译引擎"
         },
-        "markdownTranslator.openaiApiKey": {
+        "mdTranslator.targetLanguage": {
+          "type": "string",
+          "default": "zh-CN",
+          "description": "目标语言（如 zh-CN、en-US）"
+        },
+        "mdTranslator.createNewFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "翻译后是否创建新文件而不是覆盖原文件。"
+        },
+        "mdTranslator.googleApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Google Translate API密钥"
+        },
+        "mdTranslator.microsoftApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Microsoft Translator API密钥"
+        },
+        "mdTranslator.microsoftRegion": {
+          "type": "string",
+          "default": "global",
+          "description": "Microsoft Translator服务区域"
+        },
+        "mdTranslator.openaiApiKey": {
           "type": "string",
           "default": "",
           "description": "OpenAI API密钥"
         },
-        "markdownTranslator.openaiModel": {
+        "mdTranslator.openaiModel": {
           "type": "string",
-          "default": "gpt-3.5-turbo",
+          "default": "gpt-4o-mini",
           "description": "OpenAI模型名称"
         },
-        "markdownTranslator.claudeApiKey": {
+        "mdTranslator.claudeApiKey": {
           "type": "string",
           "default": "",
           "description": "Claude API密钥"
         },
-        "markdownTranslator.claudeModel": {
+        "mdTranslator.claudeModel": {
           "type": "string",
-          "default": "claude-3-haiku-20240307",
+          "default": "claude-3-5-sonnet-20241022",
           "description": "Claude模型名称"
         },
-        "markdownTranslator.baiduAppId": {
-          "type": "string",
-          "default": "",
-          "description": "百度翻译APP ID"
-        },
-        "markdownTranslator.baiduSecretKey": {
-          "type": "string",
-          "default": "",
-          "description": "百度翻译密钥"
-        },
-        "markdownTranslator.microsoftApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "微软翻译API密钥"
-        },
-        "markdownTranslator.microsoftRegion": {
-          "type": "string",
-          "default": "global",
-          "description": "微软翻译服务区域"
-        },
-        "markdownTranslator.siliconflowApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "硅基流动API密钥"
-        },
-        "markdownTranslator.siliconflowModel": {
-          "type": "string",
-          "default": "Qwen/Qwen2.5-7B-Instruct",
-          "description": "硅基流动模型名称"
-        },
-        "markdownTranslator.openaiCompatibleApiKey": {
+        "mdTranslator.openaiCompatibleApiKey": {
           "type": "string",
           "default": "",
           "description": "OpenAI兼容API密钥"
         },
-        "markdownTranslator.openaiCompatibleBaseUrl": {
+        "mdTranslator.openaiCompatibleBaseUrl": {
           "type": "string",
           "default": "",
           "description": "OpenAI兼容API基础URL"
         },
-        "markdownTranslator.openaiCompatibleModel": {
+        "mdTranslator.openaiCompatibleModel": {
           "type": "string",
-          "default": "",
+          "default": "gpt-3.5-turbo",
           "description": "OpenAI兼容API模型名称"
         },
-        "markdownTranslator.localLlmBaseUrl": {
+        "mdTranslator.ollamaBaseUrl": {
           "type": "string",
           "default": "http://localhost:11434",
-          "description": "本地LLM服务URL (如Ollama、LM Studio)"
+          "description": "Ollama服务URL"
         },
-        "markdownTranslator.localLlmModel": {
+        "mdTranslator.ollamaModel": {
           "type": "string",
           "default": "llama3.2",
-          "description": "本地LLM模型名称"
+          "description": "Ollama模型名称"
         },
-        "markdownTranslator.geminiApiKey": {
+        "mdTranslator.lmStudioBaseUrl": {
           "type": "string",
-          "default": "",
-          "description": "Google Gemini API密钥"
+          "default": "http://localhost:1234",
+          "description": "LM Studio服务URL"
         },
-        "markdownTranslator.geminiModel": {
+        "mdTranslator.lmStudioModel": {
           "type": "string",
-          "default": "gemini-1.5-flash",
-          "description": "Gemini模型名称"
-        },
-        "markdownTranslator.autoFilter": {
-          "type": "boolean",
-          "default": true,
-          "description": "自动过滤代码块和内联代码"
-        },
-        "markdownTranslator.autoTranslateOnOpen": {
-          "type": "boolean",
-          "default": false,
-          "description": "打开md文件时自动翻译"
-        },
-        "markdownTranslator.defaultTargetLanguage": {
-          "type": "string",
-          "default": "auto",
-          "enum": [
-            "auto",
-            "zh-CN",
-            "en",
-            "ja",
-            "ko",
-            "fr",
-            "de",
-            "es",
-            "ru"
-          ],
-          "description": "默认目标语言（auto为自动检测并选择）"
-        },
-        "markdownTranslator.createCopyFile": {
-          "type": "boolean",
-          "default": true,
-          "description": "创建副本文件而不是修改原文件"
+          "default": "local-model",
+          "description": "LM Studio模型名称"
         }
       }
     }
@@ -241,6 +194,7 @@
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^16.11.7",
+    "@types/node-fetch": "^2.6.4",
     "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^5.27.0",
     "@typescript-eslint/parser": "^5.27.0",
@@ -251,6 +205,7 @@
   },
   "dependencies": {
     "axios": "^1.4.0",
-    "crypto-js": "^4.1.1"
+    "crypto-js": "^4.1.1",
+    "node-fetch": "^2.7.0"
   }
 }
