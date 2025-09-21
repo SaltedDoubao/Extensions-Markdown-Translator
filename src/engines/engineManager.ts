@@ -7,8 +7,9 @@ import { ClaudeEngine } from './claudeEngine';
 import { OpenAICompatibleEngine } from './openaiCompatibleEngine';
 import { OllamaEngine } from './ollamaEngine';
 import { LMStudioEngine } from './lmStudioEngine';
+import { GeminiEngine } from './geminiEngine';
 
-export type EngineType = 'google' | 'microsoft' | 'openai' | 'claude' | 'openai-compatible' | 'ollama' | 'lm-studio';
+export type EngineType = 'google' | 'microsoft' | 'openai' | 'claude' | 'gemini' | 'openai-compatible' | 'ollama' | 'lm-studio';
 
 export class TranslationEngineManager {
   private engines: Map<EngineType, TranslationEngine> = new Map();
@@ -22,6 +23,7 @@ export class TranslationEngineManager {
     this.engines.set('microsoft', new MicrosoftTranslateEngine());
     this.engines.set('openai', new OpenAIEngine());
     this.engines.set('claude', new ClaudeEngine());
+    this.engines.set('gemini', new GeminiEngine());
     this.engines.set('openai-compatible', new OpenAICompatibleEngine());
     this.engines.set('ollama', new OllamaEngine());
     this.engines.set('lm-studio', new LMStudioEngine());
@@ -76,6 +78,7 @@ export class TranslationEngineManager {
       'microsoft': 'Microsoft Translator',
       'openai': 'OpenAI GPT',
       'claude': 'Anthropic Claude',
+      'gemini': 'Google Gemini',
       'openai-compatible': 'OpenAI Compatible API',
       'ollama': 'Ollama',
       'lm-studio': 'LM Studio'
@@ -92,6 +95,8 @@ export class TranslationEngineManager {
         return ['openaiApiKey', 'openaiModel'];
       case 'claude':
         return ['claudeApiKey', 'claudeModel'];
+      case 'gemini':
+        return ['geminiApiKey', 'geminiModel'];
       case 'openai-compatible':
         return ['openaiCompatibleApiKey', 'openaiCompatibleBaseUrl', 'openaiCompatibleModel'];
       case 'ollama':
@@ -104,6 +109,6 @@ export class TranslationEngineManager {
   }
 
   isLLMEngine(type: EngineType): boolean {
-    return ['openai', 'claude', 'openai-compatible', 'ollama', 'lm-studio'].includes(type);
+    return ['openai', 'claude', 'gemini', 'openai-compatible', 'ollama', 'lm-studio'].includes(type);
   }
 }

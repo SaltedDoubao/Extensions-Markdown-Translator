@@ -188,6 +188,7 @@ export class SettingsWebviewProvider {
                     <option value="microsoft">Microsoft Translator</option>
                     <option value="openai">OpenAI GPT</option>
                     <option value="claude">Anthropic Claude</option>
+                    <option value="gemini">Google Gemini</option>
                     <option value="openai-compatible">OpenAI Compatible API</option>
                     <option value="ollama">Ollama</option>
                     <option value="lm-studio">LM Studio</option>
@@ -228,7 +229,7 @@ export class SettingsWebviewProvider {
                 <div class="form-group">
                     <label for="openaiModel">模型</label>
                     <input type="text" id="openaiModel" placeholder="gpt-4o-mini" value="gpt-4o-mini">
-                    <div class="description">推荐：gpt-4o-mini, gpt-4o, gpt-4-turbo</div>
+                    <div class="description">推荐：gpt-5, gpt-4o-mini, gpt-4o, gpt-4.1</div>
                 </div>
             </div>
 
@@ -242,7 +243,22 @@ export class SettingsWebviewProvider {
                 <div class="form-group">
                     <label for="claudeModel">模型</label>
                     <input type="text" id="claudeModel" placeholder="claude-3-5-sonnet-20241022" value="claude-3-5-sonnet-20241022">
-                    <div class="description">推荐：claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022</div>
+                    <div class="description">推荐：claude-opus-4-1-20250805, claude-sonnet-4-20250514, claude-3-7-sonnet-20250219</div>
+                </div>
+            </div>
+
+            <!-- Gemini 配置 -->
+            <div id="engine-gemini" class="engine-config">
+                <div class="engine-title">Google Gemini 配置</div>
+                <div class="form-group">
+                    <label for="geminiApiKey">API 密钥</label>
+                    <input type="password" id="geminiApiKey" placeholder="输入 Gemini API 密钥">
+                    <div class="description">可在 Google AI Studio 获取密钥</div>
+                </div>
+                <div class="form-group">
+                    <label for="geminiModel">模型</label>
+                    <input type="text" id="geminiModel" placeholder="gemini-2.0-flash" value="gemini-2.0-flash">
+                    <div class="description">推荐：gemini-2.5-pro, gemini-2.5-flash</div>
                 </div>
             </div>
 
@@ -361,6 +377,8 @@ export class SettingsWebviewProvider {
                 openaiModel: document.getElementById('openaiModel').value,
                 claudeApiKey: document.getElementById('claudeApiKey').value,
                 claudeModel: document.getElementById('claudeModel').value,
+                geminiApiKey: document.getElementById('geminiApiKey').value,
+                geminiModel: document.getElementById('geminiModel').value,
                 openaiCompatibleApiKey: document.getElementById('openaiCompatibleApiKey').value,
                 openaiCompatibleBaseUrl: document.getElementById('openaiCompatibleBaseUrl').value,
                 openaiCompatibleModel: document.getElementById('openaiCompatibleModel').value,
@@ -399,6 +417,8 @@ export class SettingsWebviewProvider {
             document.getElementById('openaiModel').value = 'gpt-4o-mini';
             document.getElementById('claudeApiKey').value = '';
             document.getElementById('claudeModel').value = 'claude-3-5-sonnet-20241022';
+            document.getElementById('geminiApiKey').value = '';
+            document.getElementById('geminiModel').value = 'gemini-2.0-flash';
             document.getElementById('openaiCompatibleApiKey').value = '';
             document.getElementById('openaiCompatibleBaseUrl').value = '';
             document.getElementById('openaiCompatibleModel').value = 'gpt-4o-mini';
@@ -453,6 +473,8 @@ export class SettingsWebviewProvider {
                     document.getElementById('openaiModel').value = settings.openaiModel || 'gpt-4o-mini';
                     document.getElementById('claudeApiKey').value = settings.claudeApiKey || '';
                     document.getElementById('claudeModel').value = settings.claudeModel || 'claude-3-5-sonnet-20241022';
+                    document.getElementById('geminiApiKey').value = settings.geminiApiKey || '';
+                    document.getElementById('geminiModel').value = settings.geminiModel || 'gemini-2.0-flash';
                     document.getElementById('openaiCompatibleApiKey').value = settings.openaiCompatibleApiKey || '';
                     document.getElementById('openaiCompatibleBaseUrl').value = settings.openaiCompatibleBaseUrl || '';
                     document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || 'gpt-4o-mini';
@@ -470,8 +492,10 @@ export class SettingsWebviewProvider {
                     break;
 
                 case 'testResult':
-                    showTestStatus(message.success ? '连接测试成功' : '连接失败: ' + message.error,
-                                 message.success ? 'success' : 'error');
+                    const testMessage = message.success
+                        ? '连接测试成功'
+                        : '连接失败: ' + (message.error || '未知错误');
+                    showTestStatus(testMessage, message.success ? 'success' : 'error');
                     break;
             }
         });
@@ -504,6 +528,8 @@ export class SettingsWebviewProvider {
       openaiModel: config.get<string>('openaiModel', 'gpt-4o-mini'),
       claudeApiKey: config.get<string>('claudeApiKey', ''),
       claudeModel: config.get<string>('claudeModel', 'claude-3-5-sonnet-20241022'),
+      geminiApiKey: config.get<string>('geminiApiKey', ''),
+      geminiModel: config.get<string>('geminiModel', 'gemini-2.0-flash'),
       openaiCompatibleApiKey: config.get<string>('openaiCompatibleApiKey', ''),
       openaiCompatibleBaseUrl: config.get<string>('openaiCompatibleBaseUrl', ''),
       openaiCompatibleModel: config.get<string>('openaiCompatibleModel', 'gpt-4o-mini'),
@@ -536,6 +562,8 @@ export class SettingsWebviewProvider {
       await config.update('openaiModel', settings.openaiModel, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeApiKey', settings.claudeApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeModel', settings.claudeModel, vscode.ConfigurationTarget.Workspace);
+      await config.update('geminiApiKey', settings.geminiApiKey, vscode.ConfigurationTarget.Workspace);
+      await config.update('geminiModel', settings.geminiModel, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleApiKey', settings.openaiCompatibleApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleBaseUrl', settings.openaiCompatibleBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleModel', settings.openaiCompatibleModel, vscode.ConfigurationTarget.Workspace);
@@ -567,7 +595,6 @@ export class SettingsWebviewProvider {
 
   private async testConnection(engine: string) {
     try {
-      // 这里可以通过引擎管理器测试特定引擎
       const { TranslationEngineManager } = await import('./engines/engineManager');
       const engineManager = new TranslationEngineManager();
 
@@ -576,15 +603,18 @@ export class SettingsWebviewProvider {
       if (this.panel) {
         this.panel.webview.postMessage({
           command: 'testResult',
-          success: isValid
+          success: isValid,
+          error: isValid ? undefined : '连接验证失败，请检查配置是否正确'
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
       if (this.panel) {
         this.panel.webview.postMessage({
           command: 'testResult',
           success: false,
-          error: String(error)
+          error: errorMessage
         });
       }
     }
