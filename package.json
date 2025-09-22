@@ -137,6 +137,11 @@
           "default": "",
           "description": "Claude API密钥"
         },
+        "mdTranslator.claudeBaseUrl": {
+          "type": "string",
+          "default": "https://api.anthropic.com",
+          "description": "Claude API基础URL，支持自定义代理或第三方兼容服务"
+        },
         "mdTranslator.claudeModel": {
           "type": "string",
           "default": "claude-3-5-sonnet-20241022",

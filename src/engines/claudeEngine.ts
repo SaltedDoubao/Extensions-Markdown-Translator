@@ -7,13 +7,18 @@ export class ClaudeEngine extends BaseLLMEngine {
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
     const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeApiKey');
+    const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeBaseUrl', 'https://api.anthropic.com');
     const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeModel', 'claude-3-5-sonnet-20241022');
 
     if (!apiKey) {
       throw new Error('Claude API key not configured');
     }
 
-    const url = 'https://api.anthropic.com/v1/messages';
+    if (!baseUrl) {
+      throw new Error('Claude base URL not configured');
+    }
+
+    const url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
 
     const body = JSON.stringify({
       model: model,
@@ -50,7 +55,8 @@ export class ClaudeEngine extends BaseLLMEngine {
 
   isConfigured(): boolean {
     const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeApiKey');
-    return !!apiKey;
+    const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeBaseUrl', 'https://api.anthropic.com');
+    return !!(apiKey && baseUrl);
   }
 
   async validateConfig(): Promise<boolean> {

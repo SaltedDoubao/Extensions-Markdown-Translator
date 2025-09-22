@@ -94,7 +94,7 @@ export class TranslationEngineManager {
       case 'openai':
         return ['openaiApiKey', 'openaiModel'];
       case 'claude':
-        return ['claudeApiKey', 'claudeModel'];
+        return ['claudeApiKey', 'claudeBaseUrl', 'claudeModel'];
       case 'gemini':
         return ['geminiApiKey', 'geminiModel'];
       case 'openai-compatible':

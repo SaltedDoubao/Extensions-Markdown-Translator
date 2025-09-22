@@ -241,6 +241,11 @@ export class SettingsWebviewProvider {
                     <input type="password" id="claudeApiKey" placeholder="输入 Claude API 密钥">
                 </div>
                 <div class="form-group">
+                    <label for="claudeBaseUrl">Base URL</label>
+                    <input type="text" id="claudeBaseUrl" placeholder="https://api.anthropic.com" value="https://api.anthropic.com">
+                    <div class="description">Claude API 的基础 URL，支持自定义代理或第三方兼容服务</div>
+                </div>
+                <div class="form-group">
                     <label for="claudeModel">模型</label>
                     <input type="text" id="claudeModel" placeholder="claude-sonnet-4-20250514" value="claude-sonnet-4-20250514">
                     <div class="description">推荐：claude-opus-4-1-20250805, claude-sonnet-4-20250514, claude-3-7-sonnet-20250219</div>
@@ -376,6 +381,7 @@ export class SettingsWebviewProvider {
                 openaiApiKey: document.getElementById('openaiApiKey').value,
                 openaiModel: document.getElementById('openaiModel').value,
                 claudeApiKey: document.getElementById('claudeApiKey').value,
+                claudeBaseUrl: document.getElementById('claudeBaseUrl').value,
                 claudeModel: document.getElementById('claudeModel').value,
                 geminiApiKey: document.getElementById('geminiApiKey').value,
                 geminiModel: document.getElementById('geminiModel').value,
@@ -416,6 +422,7 @@ export class SettingsWebviewProvider {
             document.getElementById('openaiApiKey').value = '';
             document.getElementById('openaiModel').value = 'gpt-5';
             document.getElementById('claudeApiKey').value = '';
+            document.getElementById('claudeBaseUrl').value = 'https://api.anthropic.com';
             document.getElementById('claudeModel').value = 'claude-sonnet-4-20250514';
             document.getElementById('geminiApiKey').value = '';
             document.getElementById('geminiModel').value = 'gemini-2.5-flash';
@@ -472,6 +479,7 @@ export class SettingsWebviewProvider {
                     document.getElementById('openaiApiKey').value = settings.openaiApiKey || '';
                     document.getElementById('openaiModel').value = settings.openaiModel || 'gpt-5';
                     document.getElementById('claudeApiKey').value = settings.claudeApiKey || '';
+                    document.getElementById('claudeBaseUrl').value = settings.claudeBaseUrl || 'https://api.anthropic.com';
                     document.getElementById('claudeModel').value = settings.claudeModel || 'claude-sonnet-4-20250514';
                     document.getElementById('geminiApiKey').value = settings.geminiApiKey || '';
                     document.getElementById('geminiModel').value = settings.geminiModel || 'gemini-2.5-flash';
@@ -527,6 +535,7 @@ export class SettingsWebviewProvider {
       openaiApiKey: config.get<string>('openaiApiKey', ''),
       openaiModel: config.get<string>('openaiModel', 'gpt-5'),
       claudeApiKey: config.get<string>('claudeApiKey', ''),
+      claudeBaseUrl: config.get<string>('claudeBaseUrl', 'https://api.anthropic.com'),
       claudeModel: config.get<string>('claudeModel', 'claude-sonnet-4-20250514'),
       geminiApiKey: config.get<string>('geminiApiKey', ''),
       geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash'),
@@ -561,6 +570,7 @@ export class SettingsWebviewProvider {
       await config.update('openaiApiKey', settings.openaiApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiModel', settings.openaiModel, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeApiKey', settings.claudeApiKey, vscode.ConfigurationTarget.Workspace);
+      await config.update('claudeBaseUrl', settings.claudeBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeModel', settings.claudeModel, vscode.ConfigurationTarget.Workspace);
       await config.update('geminiApiKey', settings.geminiApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('geminiModel', settings.geminiModel, vscode.ConfigurationTarget.Workspace);
