@@ -44,7 +44,12 @@ function registerCommands(context: vscode.ExtensionContext) {
     settingsWebviewProvider.show();
   });
 
-  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings);
+  // 再次翻译命令（选项卡栏"再次翻译"按钮）
+  const retranslate = vscode.commands.registerCommand('mdtranslate.retranslate', async () => {
+    await retranslateDocument();
+  });
+
+  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate);
 }
 
 async function translateDocument() {
@@ -179,6 +184,51 @@ async function undoTranslateCurrentDocument() {
 
   } catch (error) {
     vscode.window.showErrorMessage(`恢复失败: ${error}`);
+  }
+}
+
+async function retranslateDocument() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showInformationMessage('请打开一个 Markdown 文件再运行翻译命令。');
+    return;
+  }
+
+  if (!isMarkdownFile(editor.document)) {
+    vscode.window.showErrorMessage('当前文件不是Markdown文档');
+    return;
+  }
+
+  const originalPath = editor.document.uri.fsPath;
+  const copyFilePath = generateCopyFilePath(originalPath);
+
+  // 检查是否已翻译（是否有备份文件）
+  if (!fs.existsSync(copyFilePath)) {
+    vscode.window.showErrorMessage('当前文档未翻译，无法执行再次翻译');
+    return;
+  }
+
+  // 先恢复原文档
+  try {
+    const copyContent = fs.readFileSync(copyFilePath, 'utf8');
+    const document = editor.document;
+    const fullRange = new vscode.Range(
+      document.positionAt(0),
+      document.positionAt(document.getText().length)
+    );
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, fullRange, copyContent);
+    await vscode.workspace.applyEdit(edit);
+    await document.save();
+
+    // 清空翻译缓存
+    translator.clearCache();
+
+    // 重新翻译
+    await translateDocument();
+
+  } catch (error) {
+    vscode.window.showErrorMessage(`再次翻译失败: ${error}`);
   }
 }
 

@@ -52,6 +52,15 @@
         "command": "mdtranslate.openSettings",
         "title": "打开配置页面",
         "category": "Markdown Translator"
+      },
+      {
+        "command": "mdtranslate.retranslate",
+        "title": "再次翻译",
+        "category": "Markdown Translator",
+        "icon": {
+          "light": "src/images/redo.ico",
+          "dark": "src/images/redo.ico"
+        }
       }
     ],
     "menus": {
@@ -64,6 +73,11 @@
         {
           "when": "resourceExtname == .md && mdTranslator.hasCopyFile",
           "command": "mdtranslate.undoTranslate",
+          "group": "navigation"
+        },
+        {
+          "when": "resourceExtname == .md && mdTranslator.hasCopyFile",
+          "command": "mdtranslate.retranslate",
           "group": "navigation"
         }
       ]

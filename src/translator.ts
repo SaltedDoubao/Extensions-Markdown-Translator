@@ -24,6 +24,10 @@ export class Translator {
     return this.translating;
   }
 
+  clearCache() {
+    this.cache.clear();
+  }
+
   private hash(text: string) {
     return crypto.createHash('sha256').update(text).digest('hex');
   }
