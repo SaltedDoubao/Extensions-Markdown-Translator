@@ -129,7 +129,7 @@
         },
         "mdTranslator.openaiModel": {
           "type": "string",
-          "default": "gpt-4o-mini",
+          "default": "gpt-5",
           "description": "OpenAI模型名称"
         },
         "mdTranslator.claudeApiKey": {
@@ -144,7 +144,7 @@
         },
         "mdTranslator.claudeModel": {
           "type": "string",
-          "default": "claude-3-5-sonnet-20241022",
+          "default": "claude-4-sonnet-20250514",
           "description": "Claude模型名称"
         },
         "mdTranslator.geminiApiKey": {
@@ -154,7 +154,7 @@
         },
         "mdTranslator.geminiModel": {
           "type": "string",
-          "default": "gemini-2.0-flash",
+          "default": "gemini-2.5-flash",
           "description": "Gemini模型名称"
         },
         "mdTranslator.openaiCompatibleApiKey": {
@@ -169,7 +169,7 @@
         },
         "mdTranslator.openaiCompatibleModel": {
           "type": "string",
-          "default": "gpt-3.5-turbo",
+          "default": "",
           "description": "OpenAI兼容API模型名称"
         },
         "mdTranslator.ollamaBaseUrl": {
@@ -179,7 +179,7 @@
         },
         "mdTranslator.ollamaModel": {
           "type": "string",
-          "default": "llama3.2",
+          "default": "",
           "description": "Ollama模型名称"
         },
         "mdTranslator.lmStudioBaseUrl": {
@@ -189,7 +189,7 @@
         },
         "mdTranslator.lmStudioModel": {
           "type": "string",
-          "default": "local-model",
+          "default": "",
           "description": "LM Studio模型名称"
         }
       }
