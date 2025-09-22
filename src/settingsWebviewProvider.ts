@@ -228,7 +228,7 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="form-group">
                     <label for="openaiModel">模型</label>
-                    <input type="text" id="openaiModel" placeholder="gpt-4o-mini" value="gpt-4o-mini">
+                    <input type="text" id="openaiModel" placeholder="gpt-5" value="gpt-5">
                     <div class="description">推荐：gpt-5, gpt-4o-mini, gpt-4o, gpt-4.1</div>
                 </div>
             </div>
@@ -242,7 +242,7 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="form-group">
                     <label for="claudeModel">模型</label>
-                    <input type="text" id="claudeModel" placeholder="claude-3-5-sonnet-20241022" value="claude-3-5-sonnet-20241022">
+                    <input type="text" id="claudeModel" placeholder="claude-sonnet-4-20250514" value="claude-sonnet-4-20250514">
                     <div class="description">推荐：claude-opus-4-1-20250805, claude-sonnet-4-20250514, claude-3-7-sonnet-20250219</div>
                 </div>
             </div>
@@ -257,7 +257,7 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="form-group">
                     <label for="geminiModel">模型</label>
-                    <input type="text" id="geminiModel" placeholder="gemini-2.0-flash" value="gemini-2.0-flash">
+                    <input type="text" id="geminiModel" placeholder="gemini-2.5-flash" value="gemini-2.5-flash">
                     <div class="description">推荐：gemini-2.5-pro, gemini-2.5-flash</div>
                 </div>
             </div>
@@ -276,7 +276,7 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="form-group">
                     <label for="openaiCompatibleModel">模型</label>
-                    <input type="text" id="openaiCompatibleModel" placeholder="gpt-4o-mini" value="gpt-4o-mini">
+                    <input type="text" id="openaiCompatibleModel" placeholder="gpt-4o-mini">
                 </div>
             </div>
 
@@ -289,7 +289,7 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="form-group">
                     <label for="ollamaModel">模型</label>
-                    <input type="text" id="ollamaModel" placeholder="llama3.2" value="llama3.2">
+                    <input type="text" id="ollamaModel" placeholder="local-model">
                     <div class="description">确保模型已在 Ollama 中下载</div>
                 </div>
             </div>
@@ -303,7 +303,7 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="form-group">
                     <label for="lmStudioModel">模型</label>
-                    <input type="text" id="lmStudioModel" placeholder="local-model" value="local-model">
+                    <input type="text" id="lmStudioModel" placeholder="local-model">
                     <div class="description">确保 LM Studio 服务器正在运行</div>
                 </div>
             </div>
@@ -414,18 +414,18 @@ export class SettingsWebviewProvider {
             document.getElementById('microsoftApiKey').value = '';
             document.getElementById('microsoftRegion').value = 'global';
             document.getElementById('openaiApiKey').value = '';
-            document.getElementById('openaiModel').value = 'gpt-4o-mini';
+            document.getElementById('openaiModel').value = 'gpt-5';
             document.getElementById('claudeApiKey').value = '';
-            document.getElementById('claudeModel').value = 'claude-3-5-sonnet-20241022';
+            document.getElementById('claudeModel').value = 'claude-sonnet-4-20250514';
             document.getElementById('geminiApiKey').value = '';
-            document.getElementById('geminiModel').value = 'gemini-2.0-flash';
+            document.getElementById('geminiModel').value = 'gemini-2.5-flash';
             document.getElementById('openaiCompatibleApiKey').value = '';
             document.getElementById('openaiCompatibleBaseUrl').value = '';
             document.getElementById('openaiCompatibleModel').value = 'gpt-4o-mini';
             document.getElementById('ollamaBaseUrl').value = 'http://localhost:11434';
-            document.getElementById('ollamaModel').value = 'llama3.2';
+            document.getElementById('ollamaModel').value = '';
             document.getElementById('lmStudioBaseUrl').value = 'http://localhost:1234';
-            document.getElementById('lmStudioModel').value = 'local-model';
+            document.getElementById('lmStudioModel').value = '';
 
             showEngineConfig();
         }
@@ -470,18 +470,18 @@ export class SettingsWebviewProvider {
                     document.getElementById('microsoftApiKey').value = settings.microsoftApiKey || '';
                     document.getElementById('microsoftRegion').value = settings.microsoftRegion || 'global';
                     document.getElementById('openaiApiKey').value = settings.openaiApiKey || '';
-                    document.getElementById('openaiModel').value = settings.openaiModel || 'gpt-4o-mini';
+                    document.getElementById('openaiModel').value = settings.openaiModel || 'gpt-5';
                     document.getElementById('claudeApiKey').value = settings.claudeApiKey || '';
-                    document.getElementById('claudeModel').value = settings.claudeModel || 'claude-3-5-sonnet-20241022';
+                    document.getElementById('claudeModel').value = settings.claudeModel || 'claude-sonnet-4-20250514';
                     document.getElementById('geminiApiKey').value = settings.geminiApiKey || '';
-                    document.getElementById('geminiModel').value = settings.geminiModel || 'gemini-2.0-flash';
+                    document.getElementById('geminiModel').value = settings.geminiModel || 'gemini-2.5-flash';
                     document.getElementById('openaiCompatibleApiKey').value = settings.openaiCompatibleApiKey || '';
                     document.getElementById('openaiCompatibleBaseUrl').value = settings.openaiCompatibleBaseUrl || '';
-                    document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || 'gpt-4o-mini';
+                    document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || '';
                     document.getElementById('ollamaBaseUrl').value = settings.ollamaBaseUrl || 'http://localhost:11434';
-                    document.getElementById('ollamaModel').value = settings.ollamaModel || 'llama3.2';
+                    document.getElementById('ollamaModel').value = settings.ollamaModel || '';
                     document.getElementById('lmStudioBaseUrl').value = settings.lmStudioBaseUrl || 'http://localhost:1234';
-                    document.getElementById('lmStudioModel').value = settings.lmStudioModel || 'local-model';
+                    document.getElementById('lmStudioModel').value = settings.lmStudioModel || '';
 
                     showEngineConfig();
                     break;
@@ -525,18 +525,18 @@ export class SettingsWebviewProvider {
       microsoftApiKey: config.get<string>('microsoftApiKey', ''),
       microsoftRegion: config.get<string>('microsoftRegion', 'global'),
       openaiApiKey: config.get<string>('openaiApiKey', ''),
-      openaiModel: config.get<string>('openaiModel', 'gpt-4o-mini'),
+      openaiModel: config.get<string>('openaiModel', 'gpt-5'),
       claudeApiKey: config.get<string>('claudeApiKey', ''),
-      claudeModel: config.get<string>('claudeModel', 'claude-3-5-sonnet-20241022'),
+      claudeModel: config.get<string>('claudeModel', 'claude-sonnet-4-20250514'),
       geminiApiKey: config.get<string>('geminiApiKey', ''),
-      geminiModel: config.get<string>('geminiModel', 'gemini-2.0-flash'),
+      geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash'),
       openaiCompatibleApiKey: config.get<string>('openaiCompatibleApiKey', ''),
       openaiCompatibleBaseUrl: config.get<string>('openaiCompatibleBaseUrl', ''),
-      openaiCompatibleModel: config.get<string>('openaiCompatibleModel', 'gpt-4o-mini'),
+      openaiCompatibleModel: config.get<string>('openaiCompatibleModel', ''),
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
-      ollamaModel: config.get<string>('ollamaModel', 'llama3.2'),
+      ollamaModel: config.get<string>('ollamaModel', ''),
       lmStudioBaseUrl: config.get<string>('lmStudioBaseUrl', 'http://localhost:1234'),
-      lmStudioModel: config.get<string>('lmStudioModel', 'local-model')
+      lmStudioModel: config.get<string>('lmStudioModel', '')
     };
 
     this.panel.webview.postMessage({
