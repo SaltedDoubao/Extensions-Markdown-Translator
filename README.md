@@ -6,9 +6,11 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
 [![VSCode](https://img.shields.io/badge/vscode-^1.74.0-blue.svg)](https://code.visualstudio.com/)
 
-## ✨ 功能特色
+## ✨ 预期功能
 
-- 快速翻译插件详情页，提高您浏览插件介绍的效率
+> 目前尚未实现对扩展详情页的翻译，但仍然可作为Markdown翻译工具使用
+
+- 快速翻译扩展详情页，提高您浏览扩展介绍的效率
 
 ## 🛠️ 支持的翻译引擎
 
