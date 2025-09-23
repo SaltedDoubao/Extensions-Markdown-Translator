@@ -1,14 +1,14 @@
 # [EMT] Extensions Markdown Translator
 
-> 一款用于翻译vscode扩展详情页README文档的插件
-
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=markdown-translator.markdown-translator)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
 [![VSCode](https://img.shields.io/badge/vscode-^1.74.0-blue.svg)](https://code.visualstudio.com/)
 
+您是否在浏览插件介绍时对长篇大论的外语介绍感到无从下手？或许可以试试这款插件！
+
 ## ✨ 预期功能
 
-> 目前尚未实现对扩展详情页的翻译，但仍然可作为Markdown翻译工具使用
+> 目前**尚未实现**对扩展详情页的翻译，但仍然可作为**Markdown翻译工具**使用
 
 - 快速翻译扩展详情页，提高您浏览扩展介绍的效率
 
@@ -18,10 +18,10 @@
 |------|------|------|
 | Google Translate | 传统API | 免费配额，快速稳定 |
 | Microsoft Translator | 传统API | 企业级服务 |
-| OpenAI API | LLM | 高质量AI翻译 |
-| Anthropic API | LLM | Anthropic AI模型 |
-| Gemini API | LLM | Google AI模型 |
-| OpenAI Compatible | LLM | 支持各种兼容OpenAI API 的接口|
+| OpenAI API | LLM | OpenAI 模型 |
+| Anthropic API | LLM | Claude 模型 |
+| Gemini API | LLM | Google 模型 |
+| OpenAI Compatible API | LLM | 支持各种兼容OpenAI API 的接口|
 | Ollama | 本地LLM | 本地部署AI模型 |
 | LM Studio | 本地LLM | 本地部署AI模型 |
 
@@ -55,40 +55,7 @@
 - **返回** - 恢复到原始文档
 - **再次翻译** - 清除翻译缓存并重新翻译
 
-## ⚙️ 配置说明
-
-> 目前配置文件位于 .vscode/settings.json
-
-### 基本设置
-```json
-{
-  "mdTranslator.defaultEngine": "google",      // 默认翻译引擎
-  "mdTranslator.targetLanguage": "zh-CN",      // 目标语言
-  "mdTranslator.createNewFile": true           // 是否创建新文件
-}
-```
-
-### API配置示例
-```json
-{
-  // Google Translate
-  "mdTranslator.googleApiKey": "your-google-api-key",
-  
-  // OpenAI
-  "mdTranslator.openaiApiKey": "your-openai-api-key",
-  "mdTranslator.openaiModel": "gpt-5",
-  
-  // Claude
-  "mdTranslator.claudeApiKey": "your-claude-api-key",
-  "mdTranslator.claudeModel": "claude-sonnet-4-20250514",
-  
-  // Ollama (本地部署)
-  "mdTranslator.ollamaBaseUrl": "http://localhost:11434",
-  "mdTranslator.ollamaModel": "qwen:latest"
-}
-```
-
-## 🚧 开发计划
+## 🚧 施工计划
 
 - [ ] 配置文件加密
 - [ ] 修复API连接测试
