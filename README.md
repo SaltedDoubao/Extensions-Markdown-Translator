@@ -8,12 +8,9 @@
 
 ## ✨ 预期功能
 
-> ✅ **扩展详情页翻译功能已实现！** 现在可以翻译任何VSCode扩展的README和CHANGELOG文档
+> 目前**尚未实现**对扩展详情页的翻译，但仍然可作为**Markdown翻译工具**使用
 
-- ✅ 快速翻译扩展详情页，提高您浏览扩展介绍的效率
-- ✅ 支持本地已安装扩展和Marketplace扩展
-- ✅ 智能识别README和CHANGELOG文档
-- ✅ 交互式翻译界面，支持分段翻译和保存
+- 快速翻译扩展详情页，提高您浏览扩展介绍的效率
 
 ## 🛠️ 支持的翻译引擎
 
@@ -30,11 +27,19 @@
 
 ## 📥 安装使用
 
-### 方法一：VSCode 扩展商店安装
-1. 打开 VSCode
-2. 进入扩展页面 (`Ctrl+Shift+X`)
-3. 搜索 "Markdown Translator"
-4. 点击安装
+### 方法一：本地编译运行
+1. 克隆此项目
+```
+git clone https://github.com/SaltedDoubao/Extensions-Markdown-Translator.git
+```
+```
+cd Extensions-Markdown-Translator
+```
+2. 编译此项目
+```
+npm run compile
+```
+3. 使用 vscode 打开项目并按 F5 进行调试
 
 ### 方法二：从 VSIX 安装
 1. 从 [Releases](https://github.com/SaltedDoubao/Extensions-Markdown-Translator/releases) 获取最新版vsix文件
@@ -53,23 +58,17 @@
 2. 点击编辑器右上角的 **翻译** 按钮
 3. 等待翻译完成，自动生成翻译后文件
 
-### 3️⃣ 扩展详情页翻译（新功能！）
-1. 使用 `Ctrl+Shift+P` 打开命令面板
-2. 输入 "Markdown Translator: 翻译扩展详情页"
-3. 选择已安装的扩展或输入扩展ID/URL
-4. 在交互式界面中翻译README和CHANGELOG
-
-### 4️⃣ 编辑器按钮说明
+### 3️⃣ 编辑器按钮说明
 - **翻译** - 开始翻译当前文档
 - **返回** - 恢复到原始文档
 - **再次翻译** - 清除翻译缓存并重新翻译
 
 ## 🚧 施工计划
 
-- [x] ~~配置文件加密~~ ✅ 已完成API密钥安全存储
-- [x] ~~修复API连接测试~~ ✅ 已修复编码问题
-- [x] ~~扩展详情页翻译支持~~ ✅ 已完成完整功能
+- [ ] 配置文件加密
+- [ ] 修复API连接测试
 - [ ] 免费翻译服务集成
+- [ ] 扩展详情页翻译支持
 - [ ] 长文档上下文优化
 
 ## 🤝 贡献指南
