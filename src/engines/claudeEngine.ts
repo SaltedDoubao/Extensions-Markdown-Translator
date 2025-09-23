@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class ClaudeEngine extends BaseLLMEngine {
   name = 'Anthropic Claude';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('claude');
     const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeBaseUrl', 'https://api.anthropic.com');
     const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeModel', 'claude-3-5-sonnet-20241022');
 

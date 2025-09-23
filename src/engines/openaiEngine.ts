@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class OpenAIEngine extends BaseLLMEngine {
   name = 'OpenAI GPT';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('openai');
     const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiModel', 'gpt-4o-mini');
 
     if (!apiKey) {

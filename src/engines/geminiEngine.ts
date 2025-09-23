@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class GeminiEngine extends BaseLLMEngine {
   name = 'Google Gemini';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('gemini');
     const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.0-flash');
 
     if (!apiKey) {
@@ -54,12 +56,16 @@ export class GeminiEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiApiKey');
-    return !!apiKey;
+    const secretStorage = getSecretStorageManager();
+    return secretStorage.hasApiKey('gemini')
+      .then(hasKey => hasKey)
+      .catch(() => false) as any;
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
+    const secretStorage = getSecretStorageManager();
+    const hasKey = await secretStorage.hasApiKey('gemini');
+    if (!hasKey) {
       return false;
     }
 

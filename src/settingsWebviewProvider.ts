@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getSecretStorageManager } from './extension';
 
 export class SettingsWebviewProvider {
   private panel: vscode.WebviewPanel | undefined;
@@ -523,23 +524,26 @@ export class SettingsWebviewProvider {
     }
 
     const config = vscode.workspace.getConfiguration('mdTranslator');
+    const secretStorage = getSecretStorageManager();
+
+    // 从安全存储加载API keys
     const settings = {
       defaultEngine: config.get<string>('defaultEngine', 'google'),
       targetLanguage: config.get<string>('targetLanguage', 'zh-CN'),
       createNewFile: config.get<boolean>('createNewFile', true),
 
-      // 各引擎配置
-      googleApiKey: config.get<string>('googleApiKey', ''),
-      microsoftApiKey: config.get<string>('microsoftApiKey', ''),
+      // 从安全存储加载各引擎配置
+      googleApiKey: (await secretStorage.getApiKeyWithFallback('google')) || '',
+      microsoftApiKey: (await secretStorage.getApiKeyWithFallback('microsoft')) || '',
       microsoftRegion: config.get<string>('microsoftRegion', 'global'),
-      openaiApiKey: config.get<string>('openaiApiKey', ''),
+      openaiApiKey: (await secretStorage.getApiKeyWithFallback('openai')) || '',
       openaiModel: config.get<string>('openaiModel', 'gpt-5'),
-      claudeApiKey: config.get<string>('claudeApiKey', ''),
+      claudeApiKey: (await secretStorage.getApiKeyWithFallback('claude')) || '',
       claudeBaseUrl: config.get<string>('claudeBaseUrl', 'https://api.anthropic.com'),
       claudeModel: config.get<string>('claudeModel', 'claude-sonnet-4-20250514'),
-      geminiApiKey: config.get<string>('geminiApiKey', ''),
+      geminiApiKey: (await secretStorage.getApiKeyWithFallback('gemini')) || '',
       geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash'),
-      openaiCompatibleApiKey: config.get<string>('openaiCompatibleApiKey', ''),
+      openaiCompatibleApiKey: (await secretStorage.getApiKeyWithFallback('openaiCompatible')) || '',
       openaiCompatibleBaseUrl: config.get<string>('openaiCompatibleBaseUrl', ''),
       openaiCompatibleModel: config.get<string>('openaiCompatibleModel', ''),
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
@@ -557,30 +561,45 @@ export class SettingsWebviewProvider {
   private async saveSettings(settings: any) {
     try {
       const config = vscode.workspace.getConfiguration('mdTranslator');
+      const secretStorage = getSecretStorageManager();
 
-      // 保存所有设置
+      // 保存基本设置到配置
       await config.update('defaultEngine', settings.defaultEngine, vscode.ConfigurationTarget.Workspace);
       await config.update('targetLanguage', settings.targetLanguage, vscode.ConfigurationTarget.Workspace);
       await config.update('createNewFile', settings.createNewFile, vscode.ConfigurationTarget.Workspace);
 
-      // 保存各引擎配置
-      await config.update('googleApiKey', settings.googleApiKey, vscode.ConfigurationTarget.Workspace);
-      await config.update('microsoftApiKey', settings.microsoftApiKey, vscode.ConfigurationTarget.Workspace);
+      // 保存非敏感配置
       await config.update('microsoftRegion', settings.microsoftRegion, vscode.ConfigurationTarget.Workspace);
-      await config.update('openaiApiKey', settings.openaiApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiModel', settings.openaiModel, vscode.ConfigurationTarget.Workspace);
-      await config.update('claudeApiKey', settings.claudeApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeBaseUrl', settings.claudeBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeModel', settings.claudeModel, vscode.ConfigurationTarget.Workspace);
-      await config.update('geminiApiKey', settings.geminiApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('geminiModel', settings.geminiModel, vscode.ConfigurationTarget.Workspace);
-      await config.update('openaiCompatibleApiKey', settings.openaiCompatibleApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleBaseUrl', settings.openaiCompatibleBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleModel', settings.openaiCompatibleModel, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaBaseUrl', settings.ollamaBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaModel', settings.ollamaModel, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioBaseUrl', settings.lmStudioBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioModel', settings.lmStudioModel, vscode.ConfigurationTarget.Workspace);
+
+      // 保存API keys到安全存储
+      if (settings.googleApiKey) {
+        await secretStorage.storeApiKey('google', settings.googleApiKey);
+      }
+      if (settings.microsoftApiKey) {
+        await secretStorage.storeApiKey('microsoft', settings.microsoftApiKey);
+      }
+      if (settings.openaiApiKey) {
+        await secretStorage.storeApiKey('openai', settings.openaiApiKey);
+      }
+      if (settings.claudeApiKey) {
+        await secretStorage.storeApiKey('claude', settings.claudeApiKey);
+      }
+      if (settings.geminiApiKey) {
+        await secretStorage.storeApiKey('gemini', settings.geminiApiKey);
+      }
+      if (settings.openaiCompatibleApiKey) {
+        await secretStorage.storeApiKey('openaiCompatible', settings.openaiCompatibleApiKey);
+      }
 
       if (this.panel) {
         this.panel.webview.postMessage({

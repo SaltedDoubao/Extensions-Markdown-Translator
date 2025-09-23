@@ -3,13 +3,19 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { Translator } from './translator';
 import { SettingsWebviewProvider } from './settingsWebviewProvider';
+import { SecretStorageManager } from './utils/secretStorage';
 
 let translator: Translator;
 let settingsWebviewProvider: SettingsWebviewProvider;
+let secretStorageManager: SecretStorageManager;
 
 export function activate(context: vscode.ExtensionContext) {
   translator = new Translator(context);
   settingsWebviewProvider = new SettingsWebviewProvider(context);
+  secretStorageManager = new SecretStorageManager(context);
+
+  // 执行安全存储迁移
+  migrateToSecureStorage();
 
   // 注册所有命令
   registerCommands(context);
@@ -256,6 +262,18 @@ function updateButtonContext() {
 
 function isMarkdownFile(document: vscode.TextDocument): boolean {
   return document.languageId === 'markdown';
+}
+
+async function migrateToSecureStorage() {
+  try {
+    await secretStorageManager.migrateFromPlainTextConfig();
+  } catch (error) {
+    console.error('迁移到安全存储时出错:', error);
+  }
+}
+
+export function getSecretStorageManager(): SecretStorageManager {
+  return secretStorageManager;
 }
 
 export function deactivate() {
