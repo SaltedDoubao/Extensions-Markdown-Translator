@@ -39,7 +39,7 @@ cd Extensions-Markdown-Translator
 ```
 npm run compile
 ```
-3. 按 F5 进行调试
+3. 使用 vscode 打开项目并按 F5 进行调试
 
 ### 方法二：从 VSIX 安装
 1. 从 [Releases](https://github.com/SaltedDoubao/Extensions-Markdown-Translator/releases) 获取最新版vsix文件
