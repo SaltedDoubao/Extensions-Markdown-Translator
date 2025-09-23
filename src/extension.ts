@@ -4,15 +4,25 @@ import * as fs from 'fs';
 import { Translator } from './translator';
 import { SettingsWebviewProvider } from './settingsWebviewProvider';
 import { SecretStorageManager } from './utils/secretStorage';
+import { ExtensionTranslationManager } from './services/extensionTranslationManager';
+import { ExtensionTranslationWebviewProvider } from './services/extensionTranslationWebviewProvider';
 
 let translator: Translator;
 let settingsWebviewProvider: SettingsWebviewProvider;
 let secretStorageManager: SecretStorageManager;
+let extensionTranslationManager: ExtensionTranslationManager;
+let extensionTranslationWebviewProvider: ExtensionTranslationWebviewProvider;
 
 export function activate(context: vscode.ExtensionContext) {
   translator = new Translator(context);
   settingsWebviewProvider = new SettingsWebviewProvider(context);
   secretStorageManager = new SecretStorageManager(context);
+  extensionTranslationManager = new ExtensionTranslationManager(context);
+  extensionTranslationWebviewProvider = new ExtensionTranslationWebviewProvider(
+    context,
+    extensionTranslationManager,
+    translator
+  );
 
   // 执行安全存储迁移
   migrateToSecureStorage();
@@ -55,7 +65,42 @@ function registerCommands(context: vscode.ExtensionContext) {
     await retranslateDocument();
   });
 
-  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate);
+  // 扩展翻译命令
+  const translateExtension = vscode.commands.registerCommand('mdtranslate.translateExtension', async () => {
+    await extensionTranslationWebviewProvider.show();
+  });
+
+  // 通过扩展ID翻译命令
+  const translateExtensionById = vscode.commands.registerCommand('mdtranslate.translateExtensionById', async () => {
+    const extensionId = await vscode.window.showInputBox({
+      prompt: '请输入扩展ID (格式: publisher.name) 或 Marketplace URL',
+      placeHolder: '例如: ms-python.python',
+      validateInput: (value) => {
+        if (!value.trim()) {
+          return '请输入扩展ID或URL';
+        }
+        return null;
+      }
+    });
+
+    if (extensionId) {
+      // 如果输入的是URL，提取扩展ID
+      let finalExtensionId = extensionId;
+      if (extensionId.includes('marketplace.visualstudio.com')) {
+        const match = extensionId.match(/itemName=([^&]+)/);
+        if (match) {
+          finalExtensionId = match[1];
+        } else {
+          vscode.window.showErrorMessage('无法从URL中提取扩展ID');
+          return;
+        }
+      }
+
+      await extensionTranslationWebviewProvider.show(finalExtensionId);
+    }
+  });
+
+  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate, translateExtension, translateExtensionById);
 }
 
 async function translateDocument() {
