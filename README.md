@@ -27,11 +27,19 @@
 
 ## 📥 安装使用
 
-### 方法一：VSCode 扩展商店安装
-1. 打开 VSCode
-2. 进入扩展页面 (`Ctrl+Shift+X`)
-3. 搜索 "Markdown Translator"
-4. 点击安装
+### 方法一：本地编译运行
+1. 克隆此项目
+```
+git clone https://github.com/SaltedDoubao/Extensions-Markdown-Translator.git
+```
+```
+cd Extensions-Markdown-Translator
+```
+2. 编译此项目
+```
+npm run compile
+```
+3. 按 F5 进行调试
 
 ### 方法二：从 VSIX 安装
 1. 从 [Releases](https://github.com/SaltedDoubao/Extensions-Markdown-Translator/releases) 获取最新版vsix文件
