@@ -1,10 +1,10 @@
 {
-  "name": "markdown-translator",
-  "displayName": "Markdown Translator",
+  "name": "Extensions-Markdown-Translator",
+  "displayName": "Extensions Markdown Translator",
   "description": "VSCode插件 - 智能markdown文档翻译工具，支持多种翻译引擎和LLM API，高性能并发翻译",
   "version": "0.2.0",
-  "publisher": "markdown-translator",
-  "repository": "https://github.com/your-username/markdown-translator",
+  "publisher": "SaltedDoubao",
+  "repository": "https://github.com/SaltedDoubao/Extensions-Markdown-Translator",
   "engines": {
     "vscode": "^1.74.0"
   },
