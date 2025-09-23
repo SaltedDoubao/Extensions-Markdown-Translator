@@ -34,7 +34,7 @@
 4. 点击安装
 
 ### 方法二：从 VSIX 安装
-1. 从 [Releases](https://github.com/SaltedDoubao/markdown-translator/releases) 获取最新版vsix文件
+1. 从 [Releases](https://github.com/SaltedDoubao/Extensions-Markdown-Translator/releases) 获取最新版vsix文件
 2. 打开 vscode - 扩展 - 视图和更多操作 - 从vsix安装
 3. 找到并打开vsix文件
 
@@ -74,11 +74,11 @@
 
 ## 🏛️ 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 MIT 许可证 - 详见 [LICENSE](https://github.com/SaltedDoubao/Extensions-Markdown-Translator/blob/main/LICENSE) 文件
 
 ## 💬 支持与反馈
 
-- 🐛 **问题反馈**：[GitHub Issues](https://github.com/SaltedDoubao/markdown-translator/issues)
+- 🐛 **问题反馈**：[GitHub Issues](https://github.com/SaltedDoubao/Extensions-Markdown-Translator/issues)
 
 ---
 
