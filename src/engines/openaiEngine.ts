@@ -58,13 +58,34 @@ export class OpenAIEngine extends BaseLLMEngine {
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      const secretStorage = getSecretStorageManager();
+      const apiKey = await secretStorage.getApiKeyWithFallback('openai');
+      if (!apiKey) {
+        return false;
+      }
+
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiModel', 'gpt-4o-mini');
+      const url = 'https://api.openai.com/v1/chat/completions';
+
+      const body = JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        temperature: 0,
+        stream: false
+      });
+
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body
+      });
+
+      return !!(response && (response.id || response.choices));
     } catch {
       return false;
     }

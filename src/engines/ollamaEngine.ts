@@ -53,30 +53,39 @@ export class OllamaEngine extends BaseLLMEngine {
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      // 检查Ollama是否运行并且模型可用
       const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('ollamaBaseUrl', 'http://localhost:11434');
       const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('ollamaModel', 'llama3.2');
+      if (!baseUrl || !model) {
+        return false;
+      }
 
-      // 首先检查模型是否存在
+      // 先检查模型列表
       const checkUrl = `${baseUrl.replace(/\/$/, '')}/api/tags`;
       const modelsResponse = await this.makeHttpRequest(checkUrl, {
         method: 'GET',
         headers: {}
       });
-
       const modelExists = modelsResponse.models?.some((m: any) => m.name.includes(model));
       if (!modelExists) {
-        throw new Error(`Model ${model} not found in Ollama`);
+        return false;
       }
 
-      // 测试翻译
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      // 最小化 ping 请求
+      const url = `${baseUrl.replace(/\/$/, '')}/api/generate`;
+      const body = JSON.stringify({
+        model,
+        prompt: 'ping',
+        stream: false,
+        options: { temperature: 0 }
+      });
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        timeout: 20000
+      });
+      return !!(response && (response.response || response.done));
     } catch {
       return false;
     }

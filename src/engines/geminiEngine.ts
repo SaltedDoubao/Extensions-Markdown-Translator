@@ -9,7 +9,7 @@ export class GeminiEngine extends BaseLLMEngine {
   async translate(text: string, config: TranslationConfig): Promise<string> {
     const secretStorage = getSecretStorageManager();
     const apiKey = await secretStorage.getApiKeyWithFallback('gemini');
-    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.0-flash');
+    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.5-flash');
 
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
@@ -20,6 +20,7 @@ export class GeminiEngine extends BaseLLMEngine {
     const body = JSON.stringify({
       contents: [
         {
+          role: 'user',
           parts: [
             {
               text: this.getTranslationPrompt(text, config.targetLanguage, config.sourceLanguage)
@@ -56,22 +57,41 @@ export class GeminiEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    const secretStorage = getSecretStorageManager();
-    return secretStorage.hasApiKey('gemini')
-      .then(hasKey => hasKey)
-      .catch(() => false) as any;
+    // 同步快速检查：仅用于 UI 展示，实际 validateConfig 会从 Secret Storage 读取
+    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiApiKey');
+    return !!apiKey;
   }
 
   async validateConfig(): Promise<boolean> {
-    const secretStorage = getSecretStorageManager();
-    const hasKey = await secretStorage.hasApiKey('gemini');
-    if (!hasKey) {
-      return false;
-    }
-
     try {
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      const secretStorage = getSecretStorageManager();
+      const apiKey = await secretStorage.getApiKeyWithFallback('gemini');
+      if (!apiKey) {
+        return false;
+      }
+
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.5-flash');
+      // 使用 countTokens 进行最小化、稳定的连通性验证
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:countTokens`;
+      const body = JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'ping' }]
+          }
+        ]
+      });
+
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body
+      });
+
+      return typeof response?.totalTokens === 'number';
     } catch {
       return false;
     }

@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class OpenAICompatibleEngine extends BaseLLMEngine {
   name = 'OpenAI Compatible API';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('openaiCompatible');
     const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleBaseUrl');
     const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleModel', 'gpt-4o-mini');
 
@@ -56,13 +58,34 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      const secretStorage = getSecretStorageManager();
+      const apiKey = await secretStorage.getApiKeyWithFallback('openaiCompatible');
+      const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleBaseUrl');
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleModel', 'gpt-4o-mini');
+      if (!apiKey || !baseUrl) {
+        return false;
+      }
+
+      const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
+      const body = JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        temperature: 0,
+        stream: false
+      });
+
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body
+      });
+
+      return !!(response && (response.id || response.choices));
     } catch {
       return false;
     }

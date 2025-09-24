@@ -62,13 +62,35 @@ export class ClaudeEngine extends BaseLLMEngine {
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      const secretStorage = getSecretStorageManager();
+      const apiKey = await secretStorage.getApiKeyWithFallback('claude');
+      const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeBaseUrl', 'https://api.anthropic.com');
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeModel', 'claude-3-5-sonnet-20241022');
+      if (!apiKey || !baseUrl) {
+        return false;
+      }
+
+      const url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
+      const body = JSON.stringify({
+        model,
+        max_tokens: 1,
+        messages: [
+          { role: 'user', content: 'ping' }
+        ]
+      });
+
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body
+      });
+
+      return !!(response && (response.id || response.content));
     } catch {
       return false;
     }
