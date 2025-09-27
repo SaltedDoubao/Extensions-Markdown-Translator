@@ -1,41 +1,124 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const fsPromises = fs.promises;
 
 /**
- * 安全存储管理器，用于加密存储敏感信息如API密钥
+ * 密钥存储管理器：将 API key 保存在插件目录下的本地文件中
  */
 export class SecretStorageManager {
   private readonly secrets: vscode.SecretStorage;
+  private readonly storageDir: string;
+  private readonly storageFilePath: string;
+  private cache: Record<string, string> | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.secrets = context.secrets;
+    this.storageDir = path.join(context.extensionPath, '.mdt-secrets');
+    this.storageFilePath = path.join(this.storageDir, 'api-keys.json');
+  }
+
+  private getSecretStorageKey(provider: string): string {
+    return `mdTranslator.${provider}.apiKey`;
+  }
+
+  private async ensureStorageDir(): Promise<void> {
+    await fsPromises.mkdir(this.storageDir, { recursive: true });
+  }
+
+  private loadCacheSync(): void {
+    if (this.cache) {
+      return;
+    }
+
+    try {
+      const raw = fs.readFileSync(this.storageFilePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      this.cache = (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        console.error('读取 API 密钥文件失败:', error);
+      }
+      this.cache = {};
+    }
+  }
+
+  private async readCache(): Promise<Record<string, string>> {
+    this.loadCacheSync();
+    return this.cache ?? {};
+  }
+
+  private async writeCache(cache: Record<string, string>): Promise<void> {
+    this.cache = { ...cache };
+
+    if (Object.keys(this.cache).length === 0) {
+      try {
+        await fsPromises.unlink(this.storageFilePath);
+      } catch (error: any) {
+        if (error?.code !== 'ENOENT') {
+          console.error('删除 API 密钥文件失败:', error);
+        }
+      }
+      return;
+    }
+
+    await this.ensureStorageDir();
+    await fsPromises.writeFile(this.storageFilePath, JSON.stringify(this.cache, null, 2), 'utf8');
   }
 
   /**
-   * 存储API密钥
+   * 存储（或删除）API 密钥
    */
-  async storeApiKey(provider: string, apiKey: string): Promise<void> {
-    const key = `mdTranslator.${provider}.apiKey`;
-    await this.secrets.store(key, apiKey);
+  async storeApiKey(provider: string, apiKey?: string): Promise<void> {
+    const trimmedKey = (apiKey ?? '').trim();
+
+    if (!trimmedKey) {
+      await this.deleteApiKey(provider);
+      return;
+    }
+
+    const cache = await this.readCache();
+    cache[provider] = trimmedKey;
+    await this.writeCache(cache);
+
+    // 清理 VS Code Secret Storage 中的旧数据
+    await this.secrets.delete(this.getSecretStorageKey(provider));
   }
 
   /**
-   * 获取API密钥
+   * 获取 API 密钥
    */
   async getApiKey(provider: string): Promise<string | undefined> {
-    const key = `mdTranslator.${provider}.apiKey`;
-    return await this.secrets.get(key);
+    const cache = await this.readCache();
+    if (cache[provider]) {
+      return cache[provider];
+    }
+
+    const legacyKey = await this.secrets.get(this.getSecretStorageKey(provider));
+    if (legacyKey && legacyKey.trim()) {
+      await this.storeApiKey(provider, legacyKey);
+      return legacyKey.trim();
+    }
+
+    return undefined;
   }
 
   /**
-   * 删除API密钥
+   * 删除 API 密钥
    */
   async deleteApiKey(provider: string): Promise<void> {
-    const key = `mdTranslator.${provider}.apiKey`;
-    await this.secrets.delete(key);
+    const cache = await this.readCache();
+    if (cache[provider]) {
+      delete cache[provider];
+      await this.writeCache(cache);
+    }
+
+    await this.secrets.delete(this.getSecretStorageKey(provider));
   }
 
   /**
-   * 从旧的明文配置迁移到安全存储
+   * 迁移旧配置中的密钥到新的本地存储
    */
   async migrateFromPlainTextConfig(): Promise<void> {
     const config = vscode.workspace.getConfiguration('mdTranslator');
@@ -45,66 +128,97 @@ export class SecretStorageManager {
       'openai',
       'claude',
       'gemini',
-      'openaiCompatible'
+      'openaiCompatible',
+      'zhipu'
     ];
 
     for (const provider of providers) {
+      // 如果文件中已经存在，则跳过
+      const existing = await this.getApiKey(provider);
+      if (existing) {
+        await this.clearPlainTextConfig(config, provider);
+        continue;
+      }
+
+      // Secret Storage 中的旧数据
+      const legacySecret = await this.secrets.get(this.getSecretStorageKey(provider));
+      if (legacySecret && legacySecret.trim()) {
+        await this.storeApiKey(provider, legacySecret);
+        await this.clearPlainTextConfig(config, provider);
+        continue;
+      }
+
+      // settings.json 中的旧数据
       const configKey = `${provider}ApiKey`;
-      const existingKey = config.get<string>(configKey);
-
-      if (existingKey && existingKey.trim()) {
-        // 迁移到安全存储
-        await this.storeApiKey(provider, existingKey);
-
-        // 清除明文配置
-        await config.update(configKey, undefined, vscode.ConfigurationTarget.Workspace);
-        await config.update(configKey, undefined, vscode.ConfigurationTarget.Global);
-
-        console.log(`已迁移 ${provider} API 密钥到安全存储`);
+      const plainTextKey = config.get<string>(configKey);
+      if (plainTextKey && plainTextKey.trim()) {
+        await this.storeApiKey(provider, plainTextKey);
+        await this.clearPlainTextConfig(config, provider);
+        console.log(`已迁移 ${provider} API 密钥到插件目录存储`);
       }
     }
   }
 
+  private async clearPlainTextConfig(config: vscode.WorkspaceConfiguration, provider: string) {
+    const configKey = `${provider}ApiKey`;
+    await config.update(configKey, undefined, vscode.ConfigurationTarget.Workspace);
+    await config.update(configKey, undefined, vscode.ConfigurationTarget.Global);
+  }
+
   /**
-   * 检查是否有API密钥配置（安全存储或明文配置）
+   * 检查是否存在可用的 API 密钥
    */
   async hasApiKey(provider: string): Promise<boolean> {
-    // 首先检查安全存储
-    const secureKey = await this.getApiKey(provider);
-    if (secureKey) {
+    const cache = await this.readCache();
+    if (cache[provider]) {
       return true;
     }
 
-    // 检查旧的明文配置
+    const legacySecret = await this.secrets.get(this.getSecretStorageKey(provider));
+    if (legacySecret && legacySecret.trim()) {
+      await this.storeApiKey(provider, legacySecret);
+      return true;
+    }
+
     const config = vscode.workspace.getConfiguration('mdTranslator');
     const configKey = `${provider}ApiKey`;
     const plainTextKey = config.get<string>(configKey);
+    if (plainTextKey && plainTextKey.trim()) {
+      await this.storeApiKey(provider, plainTextKey);
+      return true;
+    }
 
+    return false;
+  }
+
+  hasApiKeySync(provider: string): boolean {
+    this.loadCacheSync();
+    if (this.cache?.[provider]) {
+      return true;
+    }
+
+    const config = vscode.workspace.getConfiguration('mdTranslator');
+    const configKey = `${provider}ApiKey`;
+    const plainTextKey = config.get<string>(configKey);
     return !!(plainTextKey && plainTextKey.trim());
   }
 
   /**
-   * 获取API密钥，优先从安全存储，回退到明文配置
+   * 读取 API 密钥，优先新存储，其次 Secret Storage，再回退到旧配置
    */
   async getApiKeyWithFallback(provider: string): Promise<string | undefined> {
-    // 首先尝试从安全存储获取
-    const secureKey = await this.getApiKey(provider);
-    if (secureKey) {
-      return secureKey;
+    const stored = await this.getApiKey(provider);
+    if (stored) {
+      return stored;
     }
 
-    // 回退到明文配置（为了向后兼容）
     const config = vscode.workspace.getConfiguration('mdTranslator');
     const configKey = `${provider}ApiKey`;
     const plainTextKey = config.get<string>(configKey);
-
     if (plainTextKey && plainTextKey.trim()) {
-      // 自动迁移到安全存储
       await this.storeApiKey(provider, plainTextKey);
-      await config.update(configKey, undefined, vscode.ConfigurationTarget.Workspace);
-      await config.update(configKey, undefined, vscode.ConfigurationTarget.Global);
-
-      return plainTextKey;
+      await this.clearPlainTextConfig(config, provider);
+      return plainTextKey.trim();
     }
 
     return undefined;

@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import { BaseTranslationEngine, TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class MicrosoftTranslateEngine extends BaseTranslationEngine {
   name = 'Microsoft Translator';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('microsoftApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('microsoft');
     const region = vscode.workspace.getConfiguration('mdTranslator').get<string>('microsoftRegion', 'global');
 
     if (!apiKey) {
@@ -46,8 +48,8 @@ export class MicrosoftTranslateEngine extends BaseTranslationEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('microsoftApiKey');
-    return !!apiKey;
+    const secretStorage = getSecretStorageManager();
+    return secretStorage.hasApiKeySync('microsoft');
   }
 
   async validateConfig(): Promise<boolean> {

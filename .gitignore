@@ -134,6 +134,7 @@ test-results/
 secrets.json
 config.local.json
 .secrets
+.mdt-secrets/
 
 # ====================================
 # 缓存文件
@@ -217,3 +218,5 @@ test/
 代码审查报告.md
 开发指南.md
 feedback.md
+
+.gitignore 增加 zhipu 密钥目录

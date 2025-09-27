@@ -106,6 +106,7 @@
             "claude",
             "gemini",
             "openai-compatible",
+            "zhipu",
             "ollama",
             "lm-studio"
           ],
@@ -116,6 +117,7 @@
             "Anthropic Claude",
             "Google Gemini",
             "OpenAI Compatible API",
+            "Zhipu AI",
             "Ollama",
             "LM Studio"
           ],
@@ -195,6 +197,16 @@
           "type": "string",
           "default": "",
           "description": "OpenAI兼容API模型名称"
+        },
+        "mdTranslator.zhipuApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Zhipu API密钥"
+        },
+        "mdTranslator.zhipuModel": {
+          "type": "string",
+          "default": "glm-4-flash",
+          "description": "Zhipu模型名称"
         },
         "mdTranslator.ollamaBaseUrl": {
           "type": "string",

@@ -56,9 +56,10 @@ export class ClaudeEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeApiKey');
+    const secretStorage = getSecretStorageManager();
     const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('claudeBaseUrl', 'https://api.anthropic.com');
-    return !!(apiKey && baseUrl);
+
+    return !!baseUrl && secretStorage.hasApiKeySync('claude');
   }
 
   async validateConfig(): Promise<boolean> {

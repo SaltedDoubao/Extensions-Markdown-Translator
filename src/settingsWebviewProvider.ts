@@ -191,6 +191,7 @@ export class SettingsWebviewProvider {
                     <option value="claude">Anthropic Claude</option>
                     <option value="gemini">Google Gemini</option>
                     <option value="openai-compatible">OpenAI Compatible API</option>
+                <option value="zhipu">Zhipu AI</option>
                     <option value="ollama">Ollama</option>
                     <option value="lm-studio">LM Studio</option>
                 </select>
@@ -265,6 +266,21 @@ export class SettingsWebviewProvider {
                     <label for="geminiModel">模型</label>
                     <input type="text" id="geminiModel" placeholder="gemini-2.5-flash" value="gemini-2.5-flash">
                     <div class="description">推荐：gemini-2.5-pro, gemini-2.5-flash</div>
+                </div>
+            </div>
+
+            <!-- Zhipu 配置 -->
+            <div id="engine-zhipu" class="engine-config">
+                <div class="engine-title">Zhipu AI 配置</div>
+                <div class="form-group">
+                    <label for="zhipuApiKey">API 密钥</label>
+                    <input type="password" id="zhipuApiKey" placeholder="输入 Zhipu API 密钥">
+                    <div class="description">可在智谱开放平台获取密钥</div>
+                </div>
+                <div class="form-group">
+                    <label for="zhipuModel">模型</label>
+                    <input type="text" id="zhipuModel" placeholder="glm-4-flash" value="glm-4-flash">
+                    <div class="description">推荐：glm-4-flash、glm-4-plus 等</div>
                 </div>
             </div>
 
@@ -389,6 +405,8 @@ export class SettingsWebviewProvider {
                 openaiCompatibleApiKey: document.getElementById('openaiCompatibleApiKey').value,
                 openaiCompatibleBaseUrl: document.getElementById('openaiCompatibleBaseUrl').value,
                 openaiCompatibleModel: document.getElementById('openaiCompatibleModel').value,
+                zhipuApiKey: document.getElementById('zhipuApiKey').value,
+                zhipuModel: document.getElementById('zhipuModel').value,
                 ollamaBaseUrl: document.getElementById('ollamaBaseUrl').value,
                 ollamaModel: document.getElementById('ollamaModel').value,
                 lmStudioBaseUrl: document.getElementById('lmStudioBaseUrl').value,
@@ -546,6 +564,8 @@ export class SettingsWebviewProvider {
       openaiCompatibleApiKey: (await secretStorage.getApiKeyWithFallback('openaiCompatible')) || '',
       openaiCompatibleBaseUrl: config.get<string>('openaiCompatibleBaseUrl', ''),
       openaiCompatibleModel: config.get<string>('openaiCompatibleModel', ''),
+      zhipuApiKey: (await secretStorage.getApiKeyWithFallback('zhipu')) || '',
+      zhipuModel: config.get<string>('zhipuModel', 'glm-4-flash'),
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
       ollamaModel: config.get<string>('ollamaModel', ''),
       lmStudioBaseUrl: config.get<string>('lmStudioBaseUrl', 'http://localhost:1234'),
@@ -576,30 +596,20 @@ export class SettingsWebviewProvider {
       await config.update('geminiModel', settings.geminiModel, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleBaseUrl', settings.openaiCompatibleBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleModel', settings.openaiCompatibleModel, vscode.ConfigurationTarget.Workspace);
+      await config.update('zhipuModel', settings.zhipuModel, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaBaseUrl', settings.ollamaBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaModel', settings.ollamaModel, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioBaseUrl', settings.lmStudioBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioModel', settings.lmStudioModel, vscode.ConfigurationTarget.Workspace);
 
-      // 保存API keys到安全存储
-      if (settings.googleApiKey) {
-        await secretStorage.storeApiKey('google', settings.googleApiKey);
-      }
-      if (settings.microsoftApiKey) {
-        await secretStorage.storeApiKey('microsoft', settings.microsoftApiKey);
-      }
-      if (settings.openaiApiKey) {
-        await secretStorage.storeApiKey('openai', settings.openaiApiKey);
-      }
-      if (settings.claudeApiKey) {
-        await secretStorage.storeApiKey('claude', settings.claudeApiKey);
-      }
-      if (settings.geminiApiKey) {
-        await secretStorage.storeApiKey('gemini', settings.geminiApiKey);
-      }
-      if (settings.openaiCompatibleApiKey) {
-        await secretStorage.storeApiKey('openaiCompatible', settings.openaiCompatibleApiKey);
-      }
+      // 保存API keys到插件目录（为空则删除）
+      await secretStorage.storeApiKey('google', settings.googleApiKey);
+      await secretStorage.storeApiKey('microsoft', settings.microsoftApiKey);
+      await secretStorage.storeApiKey('openai', settings.openaiApiKey);
+      await secretStorage.storeApiKey('claude', settings.claudeApiKey);
+      await secretStorage.storeApiKey('gemini', settings.geminiApiKey);
+      await secretStorage.storeApiKey('openaiCompatible', settings.openaiCompatibleApiKey);
+      await secretStorage.storeApiKey('zhipu', settings.zhipuApiKey);
 
       if (this.panel) {
         this.panel.webview.postMessage({

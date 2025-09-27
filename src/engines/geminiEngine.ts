@@ -57,9 +57,8 @@ export class GeminiEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    // 同步快速检查：仅用于 UI 展示，实际 validateConfig 会从 Secret Storage 读取
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiApiKey');
-    return !!apiKey;
+    const secretStorage = getSecretStorageManager();
+    return secretStorage.hasApiKeySync('gemini');
   }
 
   async validateConfig(): Promise<boolean> {

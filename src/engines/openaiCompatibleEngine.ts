@@ -16,7 +16,8 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
       throw new Error('OpenAI Compatible API key or base URL not configured');
     }
 
-    const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
+    const apiBase = this.normalizeBaseUrl(baseUrl);
+    const url = `${apiBase}/v1/chat/completions`;
 
     const body = JSON.stringify({
       model: model,
@@ -38,6 +39,7 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
+        timeout: 120000,
         body
       });
 
@@ -52,9 +54,10 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleApiKey');
+    const secretStorage = getSecretStorageManager();
     const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleBaseUrl');
-    return !!(apiKey && baseUrl);
+
+    return !!baseUrl && secretStorage.hasApiKeySync('openaiCompatible');
   }
 
   async validateConfig(): Promise<boolean> {
@@ -67,7 +70,8 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
         return false;
       }
 
-      const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
+      const apiBase = this.normalizeBaseUrl(baseUrl);
+      const url = `${apiBase}/v1/chat/completions`;
       const body = JSON.stringify({
         model,
         messages: [{ role: 'user', content: 'ping' }],
@@ -82,6 +86,7 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
+        timeout: 60000,
         body
       });
 
@@ -89,5 +94,19 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
     } catch {
       return false;
     }
+  }
+
+  private normalizeBaseUrl(baseUrl: string): string {
+    const trimmed = (baseUrl || '').trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const withoutTrailingSlash = trimmed.replace(/\/+$/, '');
+    if (/\/v1$/i.test(withoutTrailingSlash)) {
+      return withoutTrailingSlash.replace(/\/v1$/i, '');
+    }
+
+    return withoutTrailingSlash;
   }
 }
