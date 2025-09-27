@@ -358,6 +358,20 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="description">勾选后会创建新文件，否则直接替换原文件内容</div>
             </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="longContextOptimization">
+                        <label for="longContextOptimization">启用长上下文优化</label>
+                    </div>
+                    <div class="description">将长文档按批次翻译，减少超时或上下文截断问题</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="longContextChunkSize">批次长度限制 (字符)</label>
+                    <input type="number" id="longContextChunkSize" min="500" max="20000" step="500" value="5000">
+                    <div class="description">每批翻译的最大字符数，数值越大批次数越少但更容易超时</div>
+                </div>
         </div>
 
         <div class="section">
@@ -390,6 +404,8 @@ export class SettingsWebviewProvider {
                 defaultEngine: engine,
                 targetLanguage: document.getElementById('targetLanguage').value,
                 createNewFile: document.getElementById('createNewFile').checked,
+                longContextOptimization: document.getElementById('longContextOptimization').checked,
+                longContextChunkSize: Number(document.getElementById('longContextChunkSize').value) || 5000,
 
                 // 各引擎配置
                 googleApiKey: document.getElementById('googleApiKey').value,
@@ -433,6 +449,8 @@ export class SettingsWebviewProvider {
             document.getElementById('defaultEngine').value = 'google';
             document.getElementById('targetLanguage').value = 'zh-CN';
             document.getElementById('createNewFile').checked = true;
+            document.getElementById('longContextOptimization').checked = false;
+            document.getElementById('longContextChunkSize').value = '5000';
 
             // 重置所有API配置
             document.getElementById('googleApiKey').value = '';
@@ -509,6 +527,8 @@ export class SettingsWebviewProvider {
                     document.getElementById('ollamaModel').value = settings.ollamaModel || '';
                     document.getElementById('lmStudioBaseUrl').value = settings.lmStudioBaseUrl || 'http://localhost:1234';
                     document.getElementById('lmStudioModel').value = settings.lmStudioModel || '';
+                    document.getElementById('longContextOptimization').checked = settings.longContextOptimization || false;
+                    document.getElementById('longContextChunkSize').value = settings.longContextChunkSize || 5000;
 
                     showEngineConfig();
                     break;
@@ -569,7 +589,9 @@ export class SettingsWebviewProvider {
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
       ollamaModel: config.get<string>('ollamaModel', ''),
       lmStudioBaseUrl: config.get<string>('lmStudioBaseUrl', 'http://localhost:1234'),
-      lmStudioModel: config.get<string>('lmStudioModel', '')
+      lmStudioModel: config.get<string>('lmStudioModel', ''),
+      longContextOptimization: config.get<boolean>('longContextOptimization', false),
+      longContextChunkSize: config.get<number>('longContextChunkSize', 5000)
     };
 
     this.panel.webview.postMessage({
@@ -587,6 +609,8 @@ export class SettingsWebviewProvider {
       await config.update('defaultEngine', settings.defaultEngine, vscode.ConfigurationTarget.Workspace);
       await config.update('targetLanguage', settings.targetLanguage, vscode.ConfigurationTarget.Workspace);
       await config.update('createNewFile', settings.createNewFile, vscode.ConfigurationTarget.Workspace);
+      await config.update('longContextOptimization', settings.longContextOptimization, vscode.ConfigurationTarget.Workspace);
+      await config.update('longContextChunkSize', settings.longContextChunkSize, vscode.ConfigurationTarget.Workspace);
 
       // 保存非敏感配置
       await config.update('microsoftRegion', settings.microsoftRegion, vscode.ConfigurationTarget.Workspace);

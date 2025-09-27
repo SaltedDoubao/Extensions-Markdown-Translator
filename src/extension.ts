@@ -141,6 +141,8 @@ async function translateDocument() {
 
     const config = vscode.workspace.getConfiguration('mdTranslator');
     const targetLang = config.get<string>('targetLanguage', 'zh-CN');
+    const enableChunkMode = config.get<boolean>('longContextOptimization', false);
+    const chunkSize = config.get<number>('longContextChunkSize', 5000);
 
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: '正在翻译 Markdown', cancellable: true },
@@ -148,28 +150,84 @@ async function translateDocument() {
         token.onCancellationRequested(() => {
           translator.cancel();
         });
+        const safeChunkSize = enableChunkMode ? Math.max(500, Math.min(chunkSize || 5000, 20000)) : undefined;
+
+        const appendToDocument = async (content: string) => {
+          const currentText = doc.getText();
+          const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(currentText.length));
+          const newContent = currentText ? `${currentText}\n\n${content}` : content;
+          const editReplace = new vscode.WorkspaceEdit();
+          editReplace.replace(doc.uri, fullRange, newContent);
+          await vscode.workspace.applyEdit(editReplace);
+          await doc.save();
+        };
+
+        const restoreFromBackup = async () => {
+          try {
+            const original = fs.readFileSync(copyFilePath, 'utf8');
+            const range = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+            const restoreEdit = new vscode.WorkspaceEdit();
+            restoreEdit.replace(doc.uri, range, original);
+            await vscode.workspace.applyEdit(restoreEdit);
+            await doc.save();
+          } catch (restoreError) {
+            console.error('恢复原文失败:', restoreError);
+          }
+        };
         try {
           progress.report({ message: '准备中...' });
-          const result = await translator.translateMarkdown(text, { targetLang, progress, token });
+
+          if (enableChunkMode) {
+            const clearEdit = new vscode.WorkspaceEdit();
+            clearEdit.replace(doc.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(text.length)), '');
+            await vscode.workspace.applyEdit(clearEdit);
+            await doc.save();
+          }
+
+          let chunkCount = 0;
+          const result = await translator.translateMarkdown(text, {
+            targetLang,
+            progress,
+            token,
+            chunkSize: safeChunkSize,
+            onChunkTranslated: enableChunkMode
+              ? async ({ index, total, translated }) => {
+                  chunkCount = total;
+                  const prefix = index === 0 ? '' : '\n\n';
+                  await appendToDocument(prefix + translated);
+                  progress.report?.({ message: `批次 ${index + 1}/${total} 已完成` });
+                }
+              : undefined
+          });
           if (token.isCancellationRequested) {
+            if (enableChunkMode) {
+              await restoreFromBackup();
+            }
             vscode.window.showWarningMessage('翻译已取消');
             return;
           }
 
-          // 替换原文件内容
-          const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(text.length));
-          const translateEdit = new vscode.WorkspaceEdit();
-          translateEdit.replace(doc.uri, fullRange, result);
-          await vscode.workspace.applyEdit(translateEdit);
-          await doc.save();
+          if (!enableChunkMode || chunkCount === 0) {
+            const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+            const translateEdit = new vscode.WorkspaceEdit();
+            translateEdit.replace(doc.uri, fullRange, result);
+            await vscode.workspace.applyEdit(translateEdit);
+            await doc.save();
+          }
 
           // 更新按钮状态
           updateButtonContext();
           vscode.window.showInformationMessage('翻译完成！已创建备份文件: ' + copyFilePath);
         } catch (err: any) {
           if (err.message.includes('用户取消翻译') || err.message.includes('请求已取消')) {
+            if (enableChunkMode) {
+              await restoreFromBackup();
+            }
             vscode.window.showInformationMessage('翻译已取消');
           } else {
+            if (enableChunkMode) {
+              await restoreFromBackup();
+            }
             vscode.window.showErrorMessage('翻译失败: ' + (err?.message ?? String(err)));
           }
         }

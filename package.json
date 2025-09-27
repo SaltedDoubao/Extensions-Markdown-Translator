@@ -2,7 +2,7 @@
   "name": "Extensions-Markdown-Translator",
   "displayName": "Extensions Markdown Translator",
   "description": "VSCode插件 - 智能markdown文档翻译工具，支持多种翻译引擎和LLM API，高性能并发翻译",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "SaltedDoubao",
   "repository": "https://github.com/SaltedDoubao/Extensions-Markdown-Translator",
   "engines": {
@@ -132,6 +132,18 @@
           "type": "boolean",
           "default": true,
           "description": "翻译后是否创建新文件而不是覆盖原文件。"
+        },
+        "mdTranslator.longContextOptimization": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用长上下文优化，将长文档分批翻译以减少超时风险"
+        },
+        "mdTranslator.longContextChunkSize": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 500,
+          "maximum": 20000,
+          "description": "长上下文优化启用时的单批最大字符数"
         },
         "mdTranslator.googleApiKey": {
           "type": "string",
