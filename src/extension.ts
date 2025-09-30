@@ -154,11 +154,10 @@ async function translateDocument() {
 
         const appendToDocument = async (content: string) => {
           const currentText = doc.getText();
-          const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(currentText.length));
-          const newContent = currentText ? `${currentText}\n\n${content}` : content;
-          const editReplace = new vscode.WorkspaceEdit();
-          editReplace.replace(doc.uri, fullRange, newContent);
-          await vscode.workspace.applyEdit(editReplace);
+          const endPosition = doc.positionAt(currentText.length);
+          const editInsert = new vscode.WorkspaceEdit();
+          editInsert.insert(doc.uri, endPosition, content);
+          await vscode.workspace.applyEdit(editInsert);
           await doc.save();
         };
 

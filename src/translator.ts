@@ -1,9 +1,9 @@
-import * as vscode from 'vscode'
-import { ApiClient } from './apiClient'
-import * as crypto from 'crypto'
+import * as vscode from 'vscode';
+import { ApiClient } from './apiClient';
+import * as crypto from 'crypto';
 
-type ProgressReporter = { report: (p: { message?: string; increment?: number }) => void }
-type CancelToken = { isCancellationRequested: boolean; onCancellationRequested: (cb: () => void) => void }
+type ProgressReporter = { report: (p: { message?: string; increment?: number }) => void };
+type CancelToken = { isCancellationRequested: boolean; onCancellationRequested: (cb: () => void) => void };
 
 export class Translator {
   private api: ApiClient;

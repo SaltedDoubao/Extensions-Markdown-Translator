@@ -522,7 +522,7 @@ export class SettingsWebviewProvider {
                     document.getElementById('geminiModel').value = settings.geminiModel || 'gemini-2.5-flash';
                     document.getElementById('openaiCompatibleApiKey').value = settings.openaiCompatibleApiKey || '';
                     document.getElementById('openaiCompatibleBaseUrl').value = settings.openaiCompatibleBaseUrl || '';
-                    document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || '';
+                    document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || 'gpt-4o-mini';
                     document.getElementById('ollamaBaseUrl').value = settings.ollamaBaseUrl || 'http://localhost:11434';
                     document.getElementById('ollamaModel').value = settings.ollamaModel || '';
                     document.getElementById('lmStudioBaseUrl').value = settings.lmStudioBaseUrl || 'http://localhost:1234';
@@ -583,7 +583,7 @@ export class SettingsWebviewProvider {
       geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash'),
       openaiCompatibleApiKey: (await secretStorage.getApiKeyWithFallback('openaiCompatible')) || '',
       openaiCompatibleBaseUrl: config.get<string>('openaiCompatibleBaseUrl', ''),
-      openaiCompatibleModel: config.get<string>('openaiCompatibleModel', ''),
+      openaiCompatibleModel: config.get<string>('openaiCompatibleModel', 'gpt-4o-mini'),
       zhipuApiKey: (await secretStorage.getApiKeyWithFallback('zhipu')) || '',
       zhipuModel: config.get<string>('zhipuModel', 'glm-4-flash'),
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
