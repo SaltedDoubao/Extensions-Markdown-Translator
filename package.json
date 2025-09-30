@@ -207,7 +207,7 @@
         },
         "mdTranslator.openaiCompatibleModel": {
           "type": "string",
-          "default": "",
+          "default": "gpt-4o-mini",
           "description": "OpenAI兼容API模型名称"
         },
         "mdTranslator.zhipuApiKey": {
