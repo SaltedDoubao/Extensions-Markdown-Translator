@@ -1,0 +1,53 @@
+# VS Code 扩展打包时忽略的文件和目录
+
+# 源代码文件（只需要编译后的 out/ 目录）
+src/**
+tsconfig.json
+
+# 测试和开发文件
+TestMarkdown/**
+.local/**
+plans.md
+
+# 文档（如果不想包含在扩展包中）
+doc/**
+
+# 敏感信息和配置文件（重要！）
+.mdt-secrets/**
+.claude/**
+.cursor/**
+
+# Git 相关
+.git/**
+.gitignore
+.gitattributes
+
+# VS Code 配置
+.vscode/**
+.vscode-test/**
+
+# 依赖（vsce 会自动处理需要的依赖）
+node_modules/**
+
+# Source map 文件（可选，保留可以帮助调试）
+**/*.map
+
+# 编译缓存
+*.tsbuildinfo
+
+# 日志和临时文件
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# 已生成的 VSIX 文件
+*.vsix
+
+# ESLint 配置
+.eslintrc.json
+.eslintignore
+
+# 其他开发配置
+.editorconfig
+.prettierrc
