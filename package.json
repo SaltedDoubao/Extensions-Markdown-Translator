@@ -107,6 +107,7 @@
             "gemini",
             "openai-compatible",
             "zhipu",
+            "xai",
             "ollama",
             "lm-studio"
           ],
@@ -118,6 +119,7 @@
             "Google Gemini",
             "OpenAI Compatible API",
             "Zhipu AI",
+            "xAI Grok",
             "Ollama",
             "LM Studio"
           ],
@@ -219,6 +221,16 @@
           "type": "string",
           "default": "glm-4-flash",
           "description": "Zhipu模型名称"
+        },
+        "mdTranslator.xaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "xAI API密钥"
+        },
+        "mdTranslator.xaiModel": {
+          "type": "string",
+          "default": "grok-4-0709",
+          "description": "xAI模型名称"
         },
         "mdTranslator.ollamaBaseUrl": {
           "type": "string",

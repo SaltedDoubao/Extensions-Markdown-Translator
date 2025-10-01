@@ -191,7 +191,8 @@ export class SettingsWebviewProvider {
                     <option value="claude">Anthropic Claude</option>
                     <option value="gemini">Google Gemini</option>
                     <option value="openai-compatible">OpenAI Compatible API</option>
-                <option value="zhipu">Zhipu AI</option>
+                    <option value="zhipu">Zhipu AI</option>
+                    <option value="xai">xAI Grok</option>
                     <option value="ollama">Ollama</option>
                     <option value="lm-studio">LM Studio</option>
                 </select>
@@ -281,6 +282,21 @@ export class SettingsWebviewProvider {
                     <label for="zhipuModel">模型</label>
                     <input type="text" id="zhipuModel" placeholder="glm-4-flash" value="glm-4-flash">
                     <div class="description">推荐：glm-4-flash、glm-4-plus 等</div>
+                </div>
+            </div>
+
+            <!-- xAI 配置 -->
+            <div id="engine-xai" class="engine-config">
+                <div class="engine-title">xAI Grok 配置</div>
+                <div class="form-group">
+                    <label for="xaiApiKey">API 密钥</label>
+                    <input type="password" id="xaiApiKey" placeholder="输入 xAI API 密钥">
+                    <div class="description">可在 x.ai 平台获取密钥</div>
+                </div>
+                <div class="form-group">
+                    <label for="xaiModel">模型</label>
+                    <input type="text" id="xaiModel" placeholder="grok-4-0709" value="grok-4-0709">
+                    <div class="description">推荐：grok-4-0709, grok-4, grok-code-fast-1 等</div>
                 </div>
             </div>
 
@@ -423,6 +439,8 @@ export class SettingsWebviewProvider {
                 openaiCompatibleModel: document.getElementById('openaiCompatibleModel').value,
                 zhipuApiKey: document.getElementById('zhipuApiKey').value,
                 zhipuModel: document.getElementById('zhipuModel').value,
+                xaiApiKey: document.getElementById('xaiApiKey').value,
+                xaiModel: document.getElementById('xaiModel').value,
                 ollamaBaseUrl: document.getElementById('ollamaBaseUrl').value,
                 ollamaModel: document.getElementById('ollamaModel').value,
                 lmStudioBaseUrl: document.getElementById('lmStudioBaseUrl').value,
@@ -466,6 +484,8 @@ export class SettingsWebviewProvider {
             document.getElementById('openaiCompatibleApiKey').value = '';
             document.getElementById('openaiCompatibleBaseUrl').value = '';
             document.getElementById('openaiCompatibleModel').value = 'gpt-4o-mini';
+            document.getElementById('xaiApiKey').value = '';
+            document.getElementById('xaiModel').value = 'grok-4-0709';
             document.getElementById('ollamaBaseUrl').value = 'http://localhost:11434';
             document.getElementById('ollamaModel').value = '';
             document.getElementById('lmStudioBaseUrl').value = 'http://localhost:1234';
@@ -523,6 +543,8 @@ export class SettingsWebviewProvider {
                     document.getElementById('openaiCompatibleApiKey').value = settings.openaiCompatibleApiKey || '';
                     document.getElementById('openaiCompatibleBaseUrl').value = settings.openaiCompatibleBaseUrl || '';
                     document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || 'gpt-4o-mini';
+                    document.getElementById('xaiApiKey').value = settings.xaiApiKey || '';
+                    document.getElementById('xaiModel').value = settings.xaiModel || 'grok-4-0709';
                     document.getElementById('ollamaBaseUrl').value = settings.ollamaBaseUrl || 'http://localhost:11434';
                     document.getElementById('ollamaModel').value = settings.ollamaModel || '';
                     document.getElementById('lmStudioBaseUrl').value = settings.lmStudioBaseUrl || 'http://localhost:1234';
@@ -586,6 +608,8 @@ export class SettingsWebviewProvider {
       openaiCompatibleModel: config.get<string>('openaiCompatibleModel', 'gpt-4o-mini'),
       zhipuApiKey: (await secretStorage.getApiKeyWithFallback('zhipu')) || '',
       zhipuModel: config.get<string>('zhipuModel', 'glm-4-flash'),
+      xaiApiKey: (await secretStorage.getApiKeyWithFallback('xai')) || '',
+      xaiModel: config.get<string>('xaiModel', 'grok-4-0709'),
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
       ollamaModel: config.get<string>('ollamaModel', ''),
       lmStudioBaseUrl: config.get<string>('lmStudioBaseUrl', 'http://localhost:1234'),
@@ -621,6 +645,7 @@ export class SettingsWebviewProvider {
       await config.update('openaiCompatibleBaseUrl', settings.openaiCompatibleBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleModel', settings.openaiCompatibleModel, vscode.ConfigurationTarget.Workspace);
       await config.update('zhipuModel', settings.zhipuModel, vscode.ConfigurationTarget.Workspace);
+      await config.update('xaiModel', settings.xaiModel, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaBaseUrl', settings.ollamaBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaModel', settings.ollamaModel, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioBaseUrl', settings.lmStudioBaseUrl, vscode.ConfigurationTarget.Workspace);
@@ -634,6 +659,7 @@ export class SettingsWebviewProvider {
       await secretStorage.storeApiKey('gemini', settings.geminiApiKey);
       await secretStorage.storeApiKey('openaiCompatible', settings.openaiCompatibleApiKey);
       await secretStorage.storeApiKey('zhipu', settings.zhipuApiKey);
+      await secretStorage.storeApiKey('xai', settings.xaiApiKey);
 
       if (this.panel) {
         this.panel.webview.postMessage({

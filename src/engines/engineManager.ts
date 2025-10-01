@@ -9,8 +9,9 @@ import { OllamaEngine } from './ollamaEngine';
 import { LMStudioEngine } from './lmStudioEngine';
 import { GeminiEngine } from './geminiEngine';
 import { ZhipuEngine } from './zhipuEngine';
+import { XAIEngine } from './xaiEngine';
 
-export type EngineType = 'google' | 'microsoft' | 'openai' | 'claude' | 'gemini' | 'openai-compatible' | 'zhipu' | 'ollama' | 'lm-studio';
+export type EngineType = 'google' | 'microsoft' | 'openai' | 'claude' | 'gemini' | 'openai-compatible' | 'zhipu' | 'xai' | 'ollama' | 'lm-studio';
 
 export class TranslationEngineManager {
   private engines: Map<EngineType, TranslationEngine> = new Map();
@@ -27,6 +28,7 @@ export class TranslationEngineManager {
     this.engines.set('gemini', new GeminiEngine());
     this.engines.set('openai-compatible', new OpenAICompatibleEngine());
     this.engines.set('zhipu', new ZhipuEngine());
+    this.engines.set('xai', new XAIEngine());
     this.engines.set('ollama', new OllamaEngine());
     this.engines.set('lm-studio', new LMStudioEngine());
   }
@@ -83,6 +85,7 @@ export class TranslationEngineManager {
       'gemini': 'Google Gemini',
       'openai-compatible': 'OpenAI Compatible API',
       'zhipu': 'Zhipu AI',
+      'xai': 'xAI Grok',
       'ollama': 'Ollama',
       'lm-studio': 'LM Studio'
     };
@@ -104,6 +107,8 @@ export class TranslationEngineManager {
         return ['openaiCompatibleApiKey', 'openaiCompatibleBaseUrl', 'openaiCompatibleModel'];
       case 'zhipu':
         return ['zhipuApiKey', 'zhipuModel'];
+      case 'xai':
+        return ['xaiApiKey', 'xaiModel'];
       case 'ollama':
         return ['ollamaBaseUrl', 'ollamaModel'];
       case 'lm-studio':
@@ -114,6 +119,6 @@ export class TranslationEngineManager {
   }
 
   isLLMEngine(type: EngineType): boolean {
-    return ['openai', 'claude', 'gemini', 'openai-compatible', 'zhipu', 'ollama', 'lm-studio'].includes(type);
+    return ['openai', 'claude', 'gemini', 'openai-compatible', 'zhipu', 'xai', 'ollama', 'lm-studio'].includes(type);
   }
 }
