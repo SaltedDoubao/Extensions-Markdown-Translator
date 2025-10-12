@@ -204,6 +204,7 @@ translation-test/
 .claude/
 .cursor/
 .local/
+.mdt-secrets/
 
 # 性能分析文件
 *.cpuprofile
