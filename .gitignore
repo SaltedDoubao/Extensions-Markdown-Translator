@@ -203,6 +203,7 @@ translation-test/
 .vscode/
 .claude/
 .cursor/
+.local/
 
 # 性能分析文件
 *.cpuprofile
