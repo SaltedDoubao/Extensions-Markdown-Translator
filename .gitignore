@@ -134,6 +134,7 @@ test-results/
 secrets.json
 config.local.json
 .secrets
+.mdt-secrets/
 
 # ====================================
 # 缓存文件
@@ -216,6 +217,4 @@ debug.log
 TestMarkdown/
 test/
 # 自定义文件
-代码审查报告.md
-开发指南.md
-feedback.md
+.local/

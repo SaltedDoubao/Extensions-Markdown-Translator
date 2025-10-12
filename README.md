@@ -1,6 +1,6 @@
 # [EMT] Extensions Markdown Translator
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=markdown-translator.markdown-translator)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=markdown-translator.markdown-translator)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
 [![VSCode](https://img.shields.io/badge/vscode-^1.74.0-blue.svg)](https://code.visualstudio.com/)
 
@@ -21,6 +21,7 @@
 | OpenAI API | LLM | OpenAI 模型 |
 | Anthropic API | LLM | Claude 模型 |
 | Gemini API | LLM | Google 模型 |
+| Zhipu API | LLM | 智谱 GLM 模型 |
 | OpenAI Compatible API | LLM | 支持各种兼容OpenAI API 的接口|
 | Ollama | 本地LLM | 本地部署AI模型 |
 | LM Studio | 本地LLM | 本地部署AI模型 |
@@ -63,13 +64,15 @@ npm run compile
 - **返回** - 恢复到原始文档
 - **再次翻译** - 清除翻译缓存并重新翻译
 
+## ⚙️ 高级选项
+
+- **长上下文优化**：在设置中勾选后，会自动按批次翻译超长文档并逐步写入，避免上下文截断或超时。可配置每批最大字符数（默认 5000）。
+
 ## 🚧 施工计划
 
-- [ ] 配置文件加密
-- [ ] 修复API连接测试
+- [ ] 自动识别翻译语言
 - [ ] 免费翻译服务集成
 - [ ] 扩展详情页翻译支持
-- [ ] 长文档上下文优化
 
 ## 🤝 贡献指南
 

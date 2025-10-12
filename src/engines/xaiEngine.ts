@@ -3,19 +3,19 @@ import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
 import { getSecretStorageManager } from '../extension';
 
-export class OpenAIEngine extends BaseLLMEngine {
-  name = 'OpenAI GPT';
+export class XAIEngine extends BaseLLMEngine {
+  name = 'xAI Grok';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
     const secretStorage = getSecretStorageManager();
-    const apiKey = await secretStorage.getApiKeyWithFallback('openai');
-    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiModel', 'gpt-4o-mini');
+    const apiKey = await secretStorage.getApiKeyWithFallback('xai');
+    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('xaiModel', 'grok-4-0709');
 
     if (!apiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('xAI API key not configured');
     }
 
-    const url = 'https://api.openai.com/v1/chat/completions';
+    const url = 'https://api.x.ai/v1/chat/completions';
 
     const body = JSON.stringify({
       model: model,
@@ -26,7 +26,7 @@ export class OpenAIEngine extends BaseLLMEngine {
         }
       ],
       temperature: 0.1,
-      max_tokens: Math.min(4096, text.length * 3), // 更合理的token限制
+      max_tokens: Math.min(4096, text.length * 3),
       top_p: 1,
       frequency_penalty: 0,
       presence_penalty: 0
@@ -45,35 +45,34 @@ export class OpenAIEngine extends BaseLLMEngine {
       if (response.choices?.[0]?.message?.content) {
         return this.cleanLLMResponse(response.choices[0].message.content);
       } else {
-        throw new Error('Invalid response format from OpenAI');
+        throw new Error('Invalid response format from xAI');
       }
     } catch (error) {
-      throw new Error(`OpenAI API error: ${error}`);
+      throw new Error(`xAI API error: ${error}`);
     }
   }
 
   isConfigured(): boolean {
     const secretStorage = getSecretStorageManager();
-    return secretStorage.hasApiKeySync('openai');
+    return secretStorage.hasApiKeySync('xai');
   }
 
   async validateConfig(): Promise<boolean> {
     try {
       const secretStorage = getSecretStorageManager();
-      const apiKey = await secretStorage.getApiKeyWithFallback('openai');
+      const apiKey = await secretStorage.getApiKeyWithFallback('xai');
       if (!apiKey) {
         return false;
       }
 
-      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiModel', 'gpt-4o-mini');
-      const url = 'https://api.openai.com/v1/chat/completions';
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('xaiModel', 'grok-4-0709');
+      const url = 'https://api.x.ai/v1/chat/completions';
 
       const body = JSON.stringify({
         model,
         messages: [{ role: 'user', content: 'ping' }],
         max_tokens: 1,
-        temperature: 0,
-        stream: false
+        temperature: 0
       });
 
       const response = await this.makeHttpRequest(url, {
@@ -91,3 +90,4 @@ export class OpenAIEngine extends BaseLLMEngine {
     }
   }
 }
+

@@ -28,25 +28,31 @@ export abstract class BaseTranslationEngine implements TranslationEngine {
       const http = require('http');
       const urlObj = new URL(url);
 
+      const headers: Record<string, string> = { ...options.headers };
+      if (options.body && !headers['Content-Length']) {
+        headers['Content-Length'] = Buffer.byteLength(options.body, 'utf8').toString();
+      }
+
       const requestOptions = {
         hostname: urlObj.hostname,
         port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
         path: urlObj.pathname + urlObj.search,
         method: options.method,
-        headers: options.headers,
-        timeout: options.timeout || 30000
+        headers,
+        timeout: options.timeout ?? 120000
       };
 
       const httpModule = urlObj.protocol === 'https:' ? https : http;
 
       const req = httpModule.request(requestOptions, (res: any) => {
-        let data = '';
-        res.on('data', (chunk: any) => {
-          data += chunk;
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
         });
 
         res.on('end', () => {
           try {
+            const data = Buffer.concat(chunks).toString('utf8');
             if (res.statusCode >= 200 && res.statusCode < 300) {
               const result = data.startsWith('{') || data.startsWith('[') ? JSON.parse(data) : data;
               resolve(result);

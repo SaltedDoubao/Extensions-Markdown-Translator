@@ -2,7 +2,7 @@
   "name": "Extensions-Markdown-Translator",
   "displayName": "Extensions Markdown Translator",
   "description": "VSCode插件 - 智能markdown文档翻译工具，支持多种翻译引擎和LLM API，高性能并发翻译",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "SaltedDoubao",
   "repository": "https://github.com/SaltedDoubao/Extensions-Markdown-Translator",
   "engines": {
@@ -61,6 +61,16 @@
           "light": "src/images/redo.ico",
           "dark": "src/images/redo.ico"
         }
+      },
+      {
+        "command": "mdtranslate.translateExtension",
+        "title": "翻译扩展详情页",
+        "category": "Markdown Translator"
+      },
+      {
+        "command": "mdtranslate.translateExtensionById",
+        "title": "通过ID翻译扩展",
+        "category": "Markdown Translator"
       }
     ],
     "menus": {
@@ -96,6 +106,8 @@
             "claude",
             "gemini",
             "openai-compatible",
+            "zhipu",
+            "xai",
             "ollama",
             "lm-studio"
           ],
@@ -106,6 +118,8 @@
             "Anthropic Claude",
             "Google Gemini",
             "OpenAI Compatible API",
+            "Zhipu AI",
+            "xAI Grok",
             "Ollama",
             "LM Studio"
           ],
@@ -120,6 +134,18 @@
           "type": "boolean",
           "default": true,
           "description": "翻译后是否创建新文件而不是覆盖原文件。"
+        },
+        "mdTranslator.longContextOptimization": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用长上下文优化，将长文档分批翻译以减少超时风险"
+        },
+        "mdTranslator.longContextChunkSize": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 500,
+          "maximum": 20000,
+          "description": "长上下文优化启用时的单批最大字符数"
         },
         "mdTranslator.googleApiKey": {
           "type": "string",
@@ -183,8 +209,28 @@
         },
         "mdTranslator.openaiCompatibleModel": {
           "type": "string",
-          "default": "",
+          "default": "gpt-4o-mini",
           "description": "OpenAI兼容API模型名称"
+        },
+        "mdTranslator.zhipuApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Zhipu API密钥"
+        },
+        "mdTranslator.zhipuModel": {
+          "type": "string",
+          "default": "glm-4-flash",
+          "description": "Zhipu模型名称"
+        },
+        "mdTranslator.xaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "xAI API密钥"
+        },
+        "mdTranslator.xaiModel": {
+          "type": "string",
+          "default": "grok-4-0709",
+          "description": "xAI模型名称"
         },
         "mdTranslator.ollamaBaseUrl": {
           "type": "string",

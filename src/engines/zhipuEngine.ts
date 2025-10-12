@@ -3,22 +3,22 @@ import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
 import { getSecretStorageManager } from '../extension';
 
-export class OpenAIEngine extends BaseLLMEngine {
-  name = 'OpenAI GPT';
+export class ZhipuEngine extends BaseLLMEngine {
+  name = 'Zhipu AI';
+
+  private readonly apiEndpoint = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
     const secretStorage = getSecretStorageManager();
-    const apiKey = await secretStorage.getApiKeyWithFallback('openai');
-    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiModel', 'gpt-4o-mini');
+    const apiKey = await secretStorage.getApiKeyWithFallback('zhipu');
+    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('zhipuModel', 'glm-4-flash');
 
     if (!apiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('Zhipu API key not configured');
     }
 
-    const url = 'https://api.openai.com/v1/chat/completions';
-
     const body = JSON.stringify({
-      model: model,
+      model,
       messages: [
         {
           role: 'user',
@@ -26,68 +26,66 @@ export class OpenAIEngine extends BaseLLMEngine {
         }
       ],
       temperature: 0.1,
-      max_tokens: Math.min(4096, text.length * 3), // 更合理的token限制
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0
+      max_tokens: Math.min(8000, text.length * 3)
     });
 
     try {
-      const response = await this.makeHttpRequest(url, {
+      const response = await this.makeHttpRequest(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
+        timeout: 120000,
         body
       });
 
       if (response.choices?.[0]?.message?.content) {
         return this.cleanLLMResponse(response.choices[0].message.content);
-      } else {
-        throw new Error('Invalid response format from OpenAI');
       }
+
+      throw new Error('Invalid response format from Zhipu API');
     } catch (error) {
-      throw new Error(`OpenAI API error: ${error}`);
+      throw new Error(`Zhipu API error: ${error}`);
     }
   }
 
   isConfigured(): boolean {
     const secretStorage = getSecretStorageManager();
-    return secretStorage.hasApiKeySync('openai');
+    return secretStorage.hasApiKeySync('zhipu');
   }
 
   async validateConfig(): Promise<boolean> {
     try {
       const secretStorage = getSecretStorageManager();
-      const apiKey = await secretStorage.getApiKeyWithFallback('openai');
+      const apiKey = await secretStorage.getApiKeyWithFallback('zhipu');
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('zhipuModel', 'glm-4-flash');
+
       if (!apiKey) {
         return false;
       }
 
-      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiModel', 'gpt-4o-mini');
-      const url = 'https://api.openai.com/v1/chat/completions';
-
       const body = JSON.stringify({
         model,
         messages: [{ role: 'user', content: 'ping' }],
-        max_tokens: 1,
         temperature: 0,
-        stream: false
+        max_tokens: 1
       });
 
-      const response = await this.makeHttpRequest(url, {
+      const response = await this.makeHttpRequest(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
+        timeout: 60000,
         body
       });
 
-      return !!(response && (response.id || response.choices));
+      return !!(response && (response.choices || response.id));
     } catch {
       return false;
     }
   }
 }
+

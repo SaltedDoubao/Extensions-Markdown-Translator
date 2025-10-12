@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class OpenAICompatibleEngine extends BaseLLMEngine {
   name = 'OpenAI Compatible API';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('openaiCompatible');
     const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleBaseUrl');
     const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleModel', 'gpt-4o-mini');
 
@@ -14,7 +16,8 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
       throw new Error('OpenAI Compatible API key or base URL not configured');
     }
 
-    const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
+    const apiBase = this.normalizeBaseUrl(baseUrl);
+    const url = `${apiBase}/v1/chat/completions`;
 
     const body = JSON.stringify({
       model: model,
@@ -36,6 +39,7 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
+        timeout: 120000,
         body
       });
 
@@ -50,21 +54,59 @@ export class OpenAICompatibleEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleApiKey');
+    const secretStorage = getSecretStorageManager();
     const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleBaseUrl');
-    return !!(apiKey && baseUrl);
+
+    return !!baseUrl && secretStorage.hasApiKeySync('openaiCompatible');
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      const secretStorage = getSecretStorageManager();
+      const apiKey = await secretStorage.getApiKeyWithFallback('openaiCompatible');
+      const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleBaseUrl');
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('openaiCompatibleModel', 'gpt-4o-mini');
+      if (!apiKey || !baseUrl) {
+        return false;
+      }
+
+      const apiBase = this.normalizeBaseUrl(baseUrl);
+      const url = `${apiBase}/v1/chat/completions`;
+      const body = JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        temperature: 0,
+        stream: false
+      });
+
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        timeout: 60000,
+        body
+      });
+
+      return !!(response && (response.id || response.choices));
     } catch {
       return false;
     }
+  }
+
+  private normalizeBaseUrl(baseUrl: string): string {
+    const trimmed = (baseUrl || '').trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const withoutTrailingSlash = trimmed.replace(/\/+$/, '');
+    if (/\/v1$/i.test(withoutTrailingSlash)) {
+      return withoutTrailingSlash.replace(/\/v1$/i, '');
+    }
+
+    return withoutTrailingSlash;
   }
 }

@@ -54,24 +54,45 @@ export class LMStudioEngine extends BaseLLMEngine {
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      // 检查LM Studio是否运行
       const baseUrl = vscode.workspace.getConfiguration('mdTranslator').get<string>('lmStudioBaseUrl', 'http://localhost:1234');
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('lmStudioModel', 'local-model');
+      if (!baseUrl) {
+        return false;
+      }
 
-      // 首先检查模型端点是否可用
+      // 先检查服务与模型列表
       const modelsUrl = `${baseUrl.replace(/\/$/, '')}/v1/models`;
-      await this.makeHttpRequest(modelsUrl, {
+      const models = await this.makeHttpRequest(modelsUrl, {
         method: 'GET',
         headers: {}
       });
 
-      // 测试翻译
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      if (model) {
+        const hasModel = Array.isArray(models?.data)
+          ? models.data.some((m: any) => m.id === model || m.id?.includes(model))
+          : true; // 若无法列出模型，则不阻塞后续 ping
+        if (!hasModel) {
+          return false;
+        }
+      }
+
+      // 最小化 ping 请求
+      const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
+      const body = JSON.stringify({
+        model: model || 'local-model',
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        temperature: 0,
+        stream: false
+      });
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        timeout: 20000
+      });
+      return !!(response && (response.id || response.choices));
     } catch {
       return false;
     }

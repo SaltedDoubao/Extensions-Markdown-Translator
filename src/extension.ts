@@ -3,13 +3,29 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { Translator } from './translator';
 import { SettingsWebviewProvider } from './settingsWebviewProvider';
+import { SecretStorageManager } from './utils/secretStorage';
+import { ExtensionTranslationManager } from './services/extensionTranslationManager';
+import { ExtensionTranslationWebviewProvider } from './services/extensionTranslationWebviewProvider';
 
 let translator: Translator;
 let settingsWebviewProvider: SettingsWebviewProvider;
+let secretStorageManager: SecretStorageManager;
+let extensionTranslationManager: ExtensionTranslationManager;
+let extensionTranslationWebviewProvider: ExtensionTranslationWebviewProvider;
 
 export function activate(context: vscode.ExtensionContext) {
   translator = new Translator(context);
   settingsWebviewProvider = new SettingsWebviewProvider(context);
+  secretStorageManager = new SecretStorageManager(context);
+  extensionTranslationManager = new ExtensionTranslationManager(context);
+  extensionTranslationWebviewProvider = new ExtensionTranslationWebviewProvider(
+    context,
+    extensionTranslationManager,
+    translator
+  );
+
+  // 执行安全存储迁移
+  migrateToSecureStorage();
 
   // 注册所有命令
   registerCommands(context);
@@ -49,7 +65,42 @@ function registerCommands(context: vscode.ExtensionContext) {
     await retranslateDocument();
   });
 
-  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate);
+  // 扩展翻译命令
+  const translateExtension = vscode.commands.registerCommand('mdtranslate.translateExtension', async () => {
+    await extensionTranslationWebviewProvider.show();
+  });
+
+  // 通过扩展ID翻译命令
+  const translateExtensionById = vscode.commands.registerCommand('mdtranslate.translateExtensionById', async () => {
+    const extensionId = await vscode.window.showInputBox({
+      prompt: '请输入扩展ID (格式: publisher.name) 或 Marketplace URL',
+      placeHolder: '例如: ms-python.python',
+      validateInput: (value) => {
+        if (!value.trim()) {
+          return '请输入扩展ID或URL';
+        }
+        return null;
+      }
+    });
+
+    if (extensionId) {
+      // 如果输入的是URL，提取扩展ID
+      let finalExtensionId = extensionId;
+      if (extensionId.includes('marketplace.visualstudio.com')) {
+        const match = extensionId.match(/itemName=([^&]+)/);
+        if (match) {
+          finalExtensionId = match[1];
+        } else {
+          vscode.window.showErrorMessage('无法从URL中提取扩展ID');
+          return;
+        }
+      }
+
+      await extensionTranslationWebviewProvider.show(finalExtensionId);
+    }
+  });
+
+  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate, translateExtension, translateExtensionById);
 }
 
 async function translateDocument() {
@@ -90,6 +141,8 @@ async function translateDocument() {
 
     const config = vscode.workspace.getConfiguration('mdTranslator');
     const targetLang = config.get<string>('targetLanguage', 'zh-CN');
+    const enableChunkMode = config.get<boolean>('longContextOptimization', false);
+    const chunkSize = config.get<number>('longContextChunkSize', 5000);
 
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: '正在翻译 Markdown', cancellable: true },
@@ -97,28 +150,83 @@ async function translateDocument() {
         token.onCancellationRequested(() => {
           translator.cancel();
         });
+        const safeChunkSize = enableChunkMode ? Math.max(500, Math.min(chunkSize || 5000, 20000)) : undefined;
+
+        const appendToDocument = async (content: string) => {
+          const currentText = doc.getText();
+          const endPosition = doc.positionAt(currentText.length);
+          const editInsert = new vscode.WorkspaceEdit();
+          editInsert.insert(doc.uri, endPosition, content);
+          await vscode.workspace.applyEdit(editInsert);
+          await doc.save();
+        };
+
+        const restoreFromBackup = async () => {
+          try {
+            const original = fs.readFileSync(copyFilePath, 'utf8');
+            const range = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+            const restoreEdit = new vscode.WorkspaceEdit();
+            restoreEdit.replace(doc.uri, range, original);
+            await vscode.workspace.applyEdit(restoreEdit);
+            await doc.save();
+          } catch (restoreError) {
+            console.error('恢复原文失败:', restoreError);
+          }
+        };
         try {
           progress.report({ message: '准备中...' });
-          const result = await translator.translateMarkdown(text, { targetLang, progress, token });
+
+          if (enableChunkMode) {
+            const clearEdit = new vscode.WorkspaceEdit();
+            clearEdit.replace(doc.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(text.length)), '');
+            await vscode.workspace.applyEdit(clearEdit);
+            await doc.save();
+          }
+
+          let chunkCount = 0;
+          const result = await translator.translateMarkdown(text, {
+            targetLang,
+            progress,
+            token,
+            chunkSize: safeChunkSize,
+            onChunkTranslated: enableChunkMode
+              ? async ({ index, total, translated }) => {
+                  chunkCount = total;
+                  const prefix = index === 0 ? '' : '\n\n';
+                  await appendToDocument(prefix + translated);
+                  progress.report?.({ message: `批次 ${index + 1}/${total} 已完成` });
+                }
+              : undefined
+          });
           if (token.isCancellationRequested) {
+            if (enableChunkMode) {
+              await restoreFromBackup();
+            }
             vscode.window.showWarningMessage('翻译已取消');
             return;
           }
 
-          // 替换原文件内容
-          const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(text.length));
-          const translateEdit = new vscode.WorkspaceEdit();
-          translateEdit.replace(doc.uri, fullRange, result);
-          await vscode.workspace.applyEdit(translateEdit);
-          await doc.save();
+          if (!enableChunkMode || chunkCount === 0) {
+            const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+            const translateEdit = new vscode.WorkspaceEdit();
+            translateEdit.replace(doc.uri, fullRange, result);
+            await vscode.workspace.applyEdit(translateEdit);
+            await doc.save();
+          }
 
           // 更新按钮状态
           updateButtonContext();
           vscode.window.showInformationMessage('翻译完成！已创建备份文件: ' + copyFilePath);
         } catch (err: any) {
           if (err.message.includes('用户取消翻译') || err.message.includes('请求已取消')) {
+            if (enableChunkMode) {
+              await restoreFromBackup();
+            }
             vscode.window.showInformationMessage('翻译已取消');
           } else {
+            if (enableChunkMode) {
+              await restoreFromBackup();
+            }
             vscode.window.showErrorMessage('翻译失败: ' + (err?.message ?? String(err)));
           }
         }
@@ -256,6 +364,18 @@ function updateButtonContext() {
 
 function isMarkdownFile(document: vscode.TextDocument): boolean {
   return document.languageId === 'markdown';
+}
+
+async function migrateToSecureStorage() {
+  try {
+    await secretStorageManager.migrateFromPlainTextConfig();
+  } catch (error) {
+    console.error('迁移到安全存储时出错:', error);
+  }
+}
+
+export function getSecretStorageManager(): SecretStorageManager {
+  return secretStorageManager;
 }
 
 export function deactivate() {

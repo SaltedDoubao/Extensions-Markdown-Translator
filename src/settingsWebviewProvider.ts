@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getSecretStorageManager } from './extension';
 
 export class SettingsWebviewProvider {
   private panel: vscode.WebviewPanel | undefined;
@@ -190,6 +191,8 @@ export class SettingsWebviewProvider {
                     <option value="claude">Anthropic Claude</option>
                     <option value="gemini">Google Gemini</option>
                     <option value="openai-compatible">OpenAI Compatible API</option>
+                    <option value="zhipu">Zhipu AI</option>
+                    <option value="xai">xAI Grok</option>
                     <option value="ollama">Ollama</option>
                     <option value="lm-studio">LM Studio</option>
                 </select>
@@ -267,6 +270,36 @@ export class SettingsWebviewProvider {
                 </div>
             </div>
 
+            <!-- Zhipu 配置 -->
+            <div id="engine-zhipu" class="engine-config">
+                <div class="engine-title">Zhipu AI 配置</div>
+                <div class="form-group">
+                    <label for="zhipuApiKey">API 密钥</label>
+                    <input type="password" id="zhipuApiKey" placeholder="输入 Zhipu API 密钥">
+                    <div class="description">可在智谱开放平台获取密钥</div>
+                </div>
+                <div class="form-group">
+                    <label for="zhipuModel">模型</label>
+                    <input type="text" id="zhipuModel" placeholder="glm-4-flash" value="glm-4-flash">
+                    <div class="description">推荐：glm-4-flash、glm-4-plus 等</div>
+                </div>
+            </div>
+
+            <!-- xAI 配置 -->
+            <div id="engine-xai" class="engine-config">
+                <div class="engine-title">xAI Grok 配置</div>
+                <div class="form-group">
+                    <label for="xaiApiKey">API 密钥</label>
+                    <input type="password" id="xaiApiKey" placeholder="输入 xAI API 密钥">
+                    <div class="description">可在 x.ai 平台获取密钥</div>
+                </div>
+                <div class="form-group">
+                    <label for="xaiModel">模型</label>
+                    <input type="text" id="xaiModel" placeholder="grok-4-0709" value="grok-4-0709">
+                    <div class="description">推荐：grok-4-0709, grok-4, grok-code-fast-1 等</div>
+                </div>
+            </div>
+
             <!-- OpenAI Compatible 配置 -->
             <div id="engine-openai-compatible" class="engine-config">
                 <div class="engine-title">OpenAI Compatible API 配置</div>
@@ -341,6 +374,20 @@ export class SettingsWebviewProvider {
                 </div>
                 <div class="description">勾选后会创建新文件，否则直接替换原文件内容</div>
             </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="longContextOptimization">
+                        <label for="longContextOptimization">启用长上下文优化</label>
+                    </div>
+                    <div class="description">将长文档按批次翻译，减少超时或上下文截断问题</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="longContextChunkSize">批次长度限制 (字符)</label>
+                    <input type="number" id="longContextChunkSize" min="500" max="20000" step="500" value="5000">
+                    <div class="description">每批翻译的最大字符数，数值越大批次数越少但更容易超时</div>
+                </div>
         </div>
 
         <div class="section">
@@ -373,6 +420,8 @@ export class SettingsWebviewProvider {
                 defaultEngine: engine,
                 targetLanguage: document.getElementById('targetLanguage').value,
                 createNewFile: document.getElementById('createNewFile').checked,
+                longContextOptimization: document.getElementById('longContextOptimization').checked,
+                longContextChunkSize: Number(document.getElementById('longContextChunkSize').value) || 5000,
 
                 // 各引擎配置
                 googleApiKey: document.getElementById('googleApiKey').value,
@@ -388,6 +437,10 @@ export class SettingsWebviewProvider {
                 openaiCompatibleApiKey: document.getElementById('openaiCompatibleApiKey').value,
                 openaiCompatibleBaseUrl: document.getElementById('openaiCompatibleBaseUrl').value,
                 openaiCompatibleModel: document.getElementById('openaiCompatibleModel').value,
+                zhipuApiKey: document.getElementById('zhipuApiKey').value,
+                zhipuModel: document.getElementById('zhipuModel').value,
+                xaiApiKey: document.getElementById('xaiApiKey').value,
+                xaiModel: document.getElementById('xaiModel').value,
                 ollamaBaseUrl: document.getElementById('ollamaBaseUrl').value,
                 ollamaModel: document.getElementById('ollamaModel').value,
                 lmStudioBaseUrl: document.getElementById('lmStudioBaseUrl').value,
@@ -414,6 +467,8 @@ export class SettingsWebviewProvider {
             document.getElementById('defaultEngine').value = 'google';
             document.getElementById('targetLanguage').value = 'zh-CN';
             document.getElementById('createNewFile').checked = true;
+            document.getElementById('longContextOptimization').checked = false;
+            document.getElementById('longContextChunkSize').value = '5000';
 
             // 重置所有API配置
             document.getElementById('googleApiKey').value = '';
@@ -429,6 +484,8 @@ export class SettingsWebviewProvider {
             document.getElementById('openaiCompatibleApiKey').value = '';
             document.getElementById('openaiCompatibleBaseUrl').value = '';
             document.getElementById('openaiCompatibleModel').value = 'gpt-4o-mini';
+            document.getElementById('xaiApiKey').value = '';
+            document.getElementById('xaiModel').value = 'grok-4-0709';
             document.getElementById('ollamaBaseUrl').value = 'http://localhost:11434';
             document.getElementById('ollamaModel').value = '';
             document.getElementById('lmStudioBaseUrl').value = 'http://localhost:1234';
@@ -485,11 +542,15 @@ export class SettingsWebviewProvider {
                     document.getElementById('geminiModel').value = settings.geminiModel || 'gemini-2.5-flash';
                     document.getElementById('openaiCompatibleApiKey').value = settings.openaiCompatibleApiKey || '';
                     document.getElementById('openaiCompatibleBaseUrl').value = settings.openaiCompatibleBaseUrl || '';
-                    document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || '';
+                    document.getElementById('openaiCompatibleModel').value = settings.openaiCompatibleModel || 'gpt-4o-mini';
+                    document.getElementById('xaiApiKey').value = settings.xaiApiKey || '';
+                    document.getElementById('xaiModel').value = settings.xaiModel || 'grok-4-0709';
                     document.getElementById('ollamaBaseUrl').value = settings.ollamaBaseUrl || 'http://localhost:11434';
                     document.getElementById('ollamaModel').value = settings.ollamaModel || '';
                     document.getElementById('lmStudioBaseUrl').value = settings.lmStudioBaseUrl || 'http://localhost:1234';
                     document.getElementById('lmStudioModel').value = settings.lmStudioModel || '';
+                    document.getElementById('longContextOptimization').checked = settings.longContextOptimization || false;
+                    document.getElementById('longContextChunkSize').value = settings.longContextChunkSize || 5000;
 
                     showEngineConfig();
                     break;
@@ -523,29 +584,38 @@ export class SettingsWebviewProvider {
     }
 
     const config = vscode.workspace.getConfiguration('mdTranslator');
+    const secretStorage = getSecretStorageManager();
+
+    // 从安全存储加载API keys
     const settings = {
       defaultEngine: config.get<string>('defaultEngine', 'google'),
       targetLanguage: config.get<string>('targetLanguage', 'zh-CN'),
       createNewFile: config.get<boolean>('createNewFile', true),
 
-      // 各引擎配置
-      googleApiKey: config.get<string>('googleApiKey', ''),
-      microsoftApiKey: config.get<string>('microsoftApiKey', ''),
+      // 从安全存储加载各引擎配置
+      googleApiKey: (await secretStorage.getApiKeyWithFallback('google')) || '',
+      microsoftApiKey: (await secretStorage.getApiKeyWithFallback('microsoft')) || '',
       microsoftRegion: config.get<string>('microsoftRegion', 'global'),
-      openaiApiKey: config.get<string>('openaiApiKey', ''),
+      openaiApiKey: (await secretStorage.getApiKeyWithFallback('openai')) || '',
       openaiModel: config.get<string>('openaiModel', 'gpt-5'),
-      claudeApiKey: config.get<string>('claudeApiKey', ''),
+      claudeApiKey: (await secretStorage.getApiKeyWithFallback('claude')) || '',
       claudeBaseUrl: config.get<string>('claudeBaseUrl', 'https://api.anthropic.com'),
       claudeModel: config.get<string>('claudeModel', 'claude-sonnet-4-20250514'),
-      geminiApiKey: config.get<string>('geminiApiKey', ''),
+      geminiApiKey: (await secretStorage.getApiKeyWithFallback('gemini')) || '',
       geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash'),
-      openaiCompatibleApiKey: config.get<string>('openaiCompatibleApiKey', ''),
+      openaiCompatibleApiKey: (await secretStorage.getApiKeyWithFallback('openaiCompatible')) || '',
       openaiCompatibleBaseUrl: config.get<string>('openaiCompatibleBaseUrl', ''),
-      openaiCompatibleModel: config.get<string>('openaiCompatibleModel', ''),
+      openaiCompatibleModel: config.get<string>('openaiCompatibleModel', 'gpt-4o-mini'),
+      zhipuApiKey: (await secretStorage.getApiKeyWithFallback('zhipu')) || '',
+      zhipuModel: config.get<string>('zhipuModel', 'glm-4-flash'),
+      xaiApiKey: (await secretStorage.getApiKeyWithFallback('xai')) || '',
+      xaiModel: config.get<string>('xaiModel', 'grok-4-0709'),
       ollamaBaseUrl: config.get<string>('ollamaBaseUrl', 'http://localhost:11434'),
       ollamaModel: config.get<string>('ollamaModel', ''),
       lmStudioBaseUrl: config.get<string>('lmStudioBaseUrl', 'http://localhost:1234'),
-      lmStudioModel: config.get<string>('lmStudioModel', '')
+      lmStudioModel: config.get<string>('lmStudioModel', ''),
+      longContextOptimization: config.get<boolean>('longContextOptimization', false),
+      longContextChunkSize: config.get<number>('longContextChunkSize', 5000)
     };
 
     this.panel.webview.postMessage({
@@ -557,30 +627,39 @@ export class SettingsWebviewProvider {
   private async saveSettings(settings: any) {
     try {
       const config = vscode.workspace.getConfiguration('mdTranslator');
+      const secretStorage = getSecretStorageManager();
 
-      // 保存所有设置
+      // 保存基本设置到配置
       await config.update('defaultEngine', settings.defaultEngine, vscode.ConfigurationTarget.Workspace);
       await config.update('targetLanguage', settings.targetLanguage, vscode.ConfigurationTarget.Workspace);
       await config.update('createNewFile', settings.createNewFile, vscode.ConfigurationTarget.Workspace);
+      await config.update('longContextOptimization', settings.longContextOptimization, vscode.ConfigurationTarget.Workspace);
+      await config.update('longContextChunkSize', settings.longContextChunkSize, vscode.ConfigurationTarget.Workspace);
 
-      // 保存各引擎配置
-      await config.update('googleApiKey', settings.googleApiKey, vscode.ConfigurationTarget.Workspace);
-      await config.update('microsoftApiKey', settings.microsoftApiKey, vscode.ConfigurationTarget.Workspace);
+      // 保存非敏感配置
       await config.update('microsoftRegion', settings.microsoftRegion, vscode.ConfigurationTarget.Workspace);
-      await config.update('openaiApiKey', settings.openaiApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiModel', settings.openaiModel, vscode.ConfigurationTarget.Workspace);
-      await config.update('claudeApiKey', settings.claudeApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeBaseUrl', settings.claudeBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('claudeModel', settings.claudeModel, vscode.ConfigurationTarget.Workspace);
-      await config.update('geminiApiKey', settings.geminiApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('geminiModel', settings.geminiModel, vscode.ConfigurationTarget.Workspace);
-      await config.update('openaiCompatibleApiKey', settings.openaiCompatibleApiKey, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleBaseUrl', settings.openaiCompatibleBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('openaiCompatibleModel', settings.openaiCompatibleModel, vscode.ConfigurationTarget.Workspace);
+      await config.update('zhipuModel', settings.zhipuModel, vscode.ConfigurationTarget.Workspace);
+      await config.update('xaiModel', settings.xaiModel, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaBaseUrl', settings.ollamaBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('ollamaModel', settings.ollamaModel, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioBaseUrl', settings.lmStudioBaseUrl, vscode.ConfigurationTarget.Workspace);
       await config.update('lmStudioModel', settings.lmStudioModel, vscode.ConfigurationTarget.Workspace);
+
+      // 保存API keys到插件目录（为空则删除）
+      await secretStorage.storeApiKey('google', settings.googleApiKey);
+      await secretStorage.storeApiKey('microsoft', settings.microsoftApiKey);
+      await secretStorage.storeApiKey('openai', settings.openaiApiKey);
+      await secretStorage.storeApiKey('claude', settings.claudeApiKey);
+      await secretStorage.storeApiKey('gemini', settings.geminiApiKey);
+      await secretStorage.storeApiKey('openaiCompatible', settings.openaiCompatibleApiKey);
+      await secretStorage.storeApiKey('zhipu', settings.zhipuApiKey);
+      await secretStorage.storeApiKey('xai', settings.xaiApiKey);
 
       if (this.panel) {
         this.panel.webview.postMessage({

@@ -35,20 +35,26 @@ export class Translator {
   // 核心：接收 markdown 原文，返回翻译后的 markdown
   async translateMarkdown(
     markdown: string,
-    opts: { targetLang: string; progress?: ProgressReporter; token?: CancelToken }
+    opts: {
+      targetLang: string;
+      progress?: ProgressReporter;
+      token?: CancelToken;
+      chunkSize?: number;
+      onChunkTranslated?: (args: { index: number; total: number; translated: string }) => Promise<void>;
+    }
   ): Promise<string> {
     this.cancelled = false;
     this.translating = true;
 
     try {
-      const { targetLang, progress, token } = opts;
+      const { targetLang, progress, token, chunkSize, onChunkTranslated } = opts;
       // 1. 抽取并替换占位（保留 code fences, inline code, tables 等）
       progress?.report({ message: '提取不可翻译块...' });
       const { placeholderText, placeholders } = this.extractPlaceholders(markdown);
 
       // 2. 分段（以空行分隔）并构建翻译任务
       progress?.report({ message: '分段并准备翻译...' });
-      const segments = this.segmentText(placeholderText);
+      const segments = this.segmentText(placeholderText, chunkSize);
 
       // 3. 逐段翻译（支持缓存与并发控制）
       const translatedSegments: string[] = [];
@@ -64,6 +70,9 @@ export class Translator {
           progress?.report({ message: `翻译段落 ${done + 1}/${segments.length}...`, increment: (100 * done) / segments.length });
           const t = await this.api.translate(seg, targetLang);
           this.cache.set(key, t);
+          if (onChunkTranslated) {
+            await onChunkTranslated({ index: done, total: segments.length, translated: t });
+          }
           translatedSegments.push(t);
         }
         done++;
@@ -103,10 +112,32 @@ export class Translator {
     return out;
   }
 
-  private segmentText(text: string): string[] {
-    // 简单以两个换行分割段落，同时去除超长空行
+  private segmentText(text: string, chunkSize?: number): string[] {
     const parts = text.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
-    // 如果段落过长，可进一步按句号或限定字符数切分（此处留给扩展）
-    return parts;
+
+    if (!chunkSize || chunkSize <= 0) {
+      return parts;
+    }
+
+    const merged: string[] = [];
+    let current = '';
+
+    const flush = () => {
+      if (current.trim()) {
+        merged.push(current.trim());
+        current = '';
+      }
+    };
+
+    for (const part of parts) {
+      if (current && (current.length + part.length + 2) > chunkSize) {
+        flush();
+      }
+      current = current ? `${current}\n\n${part}` : part;
+    }
+
+    flush();
+    return merged.length > 0 ? merged : parts;
   }
+
 }

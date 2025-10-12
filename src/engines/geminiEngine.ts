@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
 import { BaseLLMEngine } from './baseLLMEngine';
 import { TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class GeminiEngine extends BaseLLMEngine {
   name = 'Google Gemini';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiApiKey');
-    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.0-flash');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('gemini');
+    const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.5-flash');
 
     if (!apiKey) {
       throw new Error('Gemini API key not configured');
@@ -18,6 +20,7 @@ export class GeminiEngine extends BaseLLMEngine {
     const body = JSON.stringify({
       contents: [
         {
+          role: 'user',
           parts: [
             {
               text: this.getTranslationPrompt(text, config.targetLanguage, config.sourceLanguage)
@@ -54,18 +57,40 @@ export class GeminiEngine extends BaseLLMEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiApiKey');
-    return !!apiKey;
+    const secretStorage = getSecretStorageManager();
+    return secretStorage.hasApiKeySync('gemini');
   }
 
   async validateConfig(): Promise<boolean> {
-    if (!this.isConfigured()) {
-      return false;
-    }
-
     try {
-      await this.translate('Hello', { targetLanguage: 'zh-CN' });
-      return true;
+      const secretStorage = getSecretStorageManager();
+      const apiKey = await secretStorage.getApiKeyWithFallback('gemini');
+      if (!apiKey) {
+        return false;
+      }
+
+      const model = vscode.workspace.getConfiguration('mdTranslator').get<string>('geminiModel', 'gemini-2.5-flash');
+      // 使用 countTokens 进行最小化、稳定的连通性验证
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:countTokens`;
+      const body = JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'ping' }]
+          }
+        ]
+      });
+
+      const response = await this.makeHttpRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body
+      });
+
+      return typeof response?.totalTokens === 'number';
     } catch {
       return false;
     }

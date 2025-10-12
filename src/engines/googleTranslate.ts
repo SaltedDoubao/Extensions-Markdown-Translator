@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import { BaseTranslationEngine, TranslationConfig } from './baseEngine';
+import { getSecretStorageManager } from '../extension';
 
 export class GoogleTranslateEngine extends BaseTranslationEngine {
   name = 'Google Translate';
 
   async translate(text: string, config: TranslationConfig): Promise<string> {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('googleApiKey');
+    const secretStorage = getSecretStorageManager();
+    const apiKey = await secretStorage.getApiKeyWithFallback('google');
 
     if (!apiKey) {
       throw new Error('Google Translate API key not configured');
@@ -40,8 +42,8 @@ export class GoogleTranslateEngine extends BaseTranslationEngine {
   }
 
   isConfigured(): boolean {
-    const apiKey = vscode.workspace.getConfiguration('mdTranslator').get<string>('googleApiKey');
-    return !!apiKey;
+    const secretStorage = getSecretStorageManager();
+    return secretStorage.hasApiKeySync('google');
   }
 
   async validateConfig(): Promise<boolean> {
