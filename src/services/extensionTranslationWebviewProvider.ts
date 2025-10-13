@@ -73,6 +73,8 @@ export class ExtensionTranslationWebviewProvider {
 
     // 如果提供了扩展ID，立即加载
     if (extensionId) {
+      // Pre-fill the input and load the extension
+      this.sendMessage({ command: 'setInitialExtension', extensionId });
       await this.handleLoadExtension(extensionId);
     } else {
       // 加载已安装扩展列表
@@ -617,6 +619,10 @@ export class ExtensionTranslationWebviewProvider {
             const message = event.data;
 
             switch (message.command) {
+                case 'setInitialExtension':
+                    document.getElementById('extensionInput').value = message.extensionId;
+                    break;
+
                 case 'showLoading':
                     showLoading(message.message);
                     break;

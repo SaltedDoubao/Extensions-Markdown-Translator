@@ -37,6 +37,34 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 初始更新按钮状态
   updateButtonContext();
+
+  // 监听Webview变化，更新状态栏按钮
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      updateStatusBarButton(editor);
+    })
+  );
+
+  // 初始化状态栏按钮
+  updateStatusBarButton(vscode.window.activeTextEditor);
+}
+
+let statusBarButton: vscode.StatusBarItem;
+
+function updateStatusBarButton(editor: vscode.TextEditor | undefined) {
+  if (!statusBarButton) {
+    statusBarButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarButton.command = 'mdtranslate.translateExtensionFromStatusBar';
+  }
+
+  // A very basic way to check if the active editor is an extension page
+  if (editor && editor.document.uri.scheme === 'vscode' && editor.document.uri.authority === 'extension') {
+    statusBarButton.text = `$(globe) Translate Extension`;
+    statusBarButton.tooltip = `Translate this extension's details`;
+    statusBarButton.show();
+  } else {
+    statusBarButton.hide();
+  }
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
@@ -70,6 +98,21 @@ function registerCommands(context: vscode.ExtensionContext) {
     await extensionTranslationWebviewProvider.show();
   });
 
+  // 从状态栏翻译扩展命令
+  const translateExtensionFromStatusBar = vscode.commands.registerCommand('mdtranslate.translateExtensionFromStatusBar', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.document.uri.scheme === 'vscode' && editor.document.uri.authority === 'extension') {
+      const extensionId = path.basename(editor.document.uri.path);
+      if (extensionId) {
+        await extensionTranslationWebviewProvider.show(extensionId);
+      } else {
+        vscode.window.showErrorMessage('无法从此页面获取扩展ID');
+      }
+    } else {
+      vscode.window.showInformationMessage('请打开一个扩展详情页面以使用此功能。');
+    }
+  });
+
   // 通过扩展ID翻译命令
   const translateExtensionById = vscode.commands.registerCommand('mdtranslate.translateExtensionById', async () => {
     const extensionId = await vscode.window.showInputBox({
@@ -100,7 +143,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     }
   });
 
-  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate, translateExtension, translateExtensionById);
+  context.subscriptions.push(translateCurrentFile, autoTranslate, undoTranslate, openSettings, retranslate, translateExtension, translateExtensionById, translateExtensionFromStatusBar);
 }
 
 async function translateDocument() {
