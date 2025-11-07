@@ -2,6 +2,7 @@
 
 # 源代码文件（只需要编译后的 out/ 目录）
 src/**
+!src/images/**
 tsconfig.json
 
 # 测试和开发文件

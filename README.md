@@ -22,6 +22,7 @@
 | Anthropic API | LLM | Claude 模型 |
 | Gemini API | LLM | Google 模型 |
 | Zhipu API | LLM | 智谱 GLM 模型 |
+| Grok API | LLM | xAI 模型 |
 | OpenAI Compatible API | LLM | 支持各种兼容OpenAI API 的接口|
 | Ollama | 本地LLM | 本地部署AI模型 |
 | LM Studio | 本地LLM | 本地部署AI模型 |
