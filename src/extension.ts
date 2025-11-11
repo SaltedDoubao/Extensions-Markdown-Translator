@@ -143,6 +143,7 @@ async function translateDocument() {
     const targetLang = config.get<string>('targetLanguage', 'zh-CN');
     const enableChunkMode = config.get<boolean>('longContextOptimization', false);
     const chunkSize = config.get<number>('longContextChunkSize', 5000);
+    const useQueue = config.get<boolean>('useTranslationQueue', true); // 默认启用队列模式
 
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: '正在翻译 Markdown', cancellable: true },
@@ -189,6 +190,7 @@ async function translateDocument() {
             progress,
             token,
             chunkSize: safeChunkSize,
+            useQueue, // 使用队列模式
             onChunkTranslated: enableChunkMode
               ? async ({ index, total, translated }) => {
                   chunkCount = total;
