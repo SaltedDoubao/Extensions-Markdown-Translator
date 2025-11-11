@@ -11,7 +11,7 @@ TestMarkdown/**
 plans.md
 
 # 文档（如果不想包含在扩展包中）
-doc/**
+docs/**
 
 # 敏感信息和配置文件（重要！）
 .mdt-secrets/**
