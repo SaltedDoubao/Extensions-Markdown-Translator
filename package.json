@@ -147,6 +147,18 @@
           "maximum": 20000,
           "description": "长上下文优化启用时的单批最大字符数"
         },
+        "mdTranslator.useTranslationQueue": {
+          "type": "boolean",
+          "default": true,
+          "description": "使用队列模式处理翻译任务，按顺序逐段翻译，避免API限流（推荐开启）"
+        },
+        "mdTranslator.retryAttempts": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "翻译失败时的重试次数"
+        },
         "mdTranslator.googleApiKey": {
           "type": "string",
           "default": "",
